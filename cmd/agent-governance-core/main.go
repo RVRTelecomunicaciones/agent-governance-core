@@ -36,7 +36,12 @@ func run() error {
 	}
 	defer pool.Close()
 
-	app := bootstrap.Wire(pool, logger)
+	app, err := bootstrap.Wire(context.Background(), pool, logger, cfg)
+	if err != nil {
+		return fmt.Errorf("wiring: %w", err)
+	}
+	defer app.OTelShutdown(context.Background())
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
 		Handler: app.HTTPServer,

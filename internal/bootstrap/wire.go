@@ -4,13 +4,17 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
 
 	// adapters
 	httpAdapter "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
+	"github.com/russellcxl/agent-governance-core/internal/adapters/inbound/metrics"
 	"github.com/russellcxl/agent-governance-core/internal/adapters/inbound/sdk"
+	"github.com/russellcxl/agent-governance-core/internal/adapters/inbound/tracing"
 	"github.com/russellcxl/agent-governance-core/internal/adapters/outbound/events"
 	"github.com/russellcxl/agent-governance-core/internal/adapters/outbound/memory"
 	"github.com/russellcxl/agent-governance-core/internal/adapters/outbound/persistence"
@@ -36,18 +40,27 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/application/approvals"
 	"github.com/russellcxl/agent-governance-core/internal/application/escalation"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/clock"
+	"github.com/russellcxl/agent-governance-core/internal/infrastructure/config"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/idgen"
+	"github.com/russellcxl/agent-governance-core/internal/infrastructure/observability"
 )
 
 // App holds the wired application components.
 type App struct {
-	HTTPServer *httpAdapter.Server
-	Facade     *sdk.GovernanceFacade
-	Notifier   *events.CallbackNotifier
+	HTTPServer   *httpAdapter.Server
+	Facade       *sdk.GovernanceFacade
+	Notifier     *events.CallbackNotifier
+	OTelShutdown func(context.Context) error
 }
 
 // Wire creates and connects all application dependencies.
-func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
+func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg config.Config) (*App, error) {
+	// OTel setup (no-op when disabled).
+	otelShutdown, err := observability.SetupOTel(ctx, cfg.OTelEnabled, "agent-governance-core")
+	if err != nil {
+		return nil, fmt.Errorf("otel setup: %w", err)
+	}
+
 	// Infrastructure
 	clk := clock.RealClock{}
 	gen := idgen.ULIDGenerator{}
@@ -69,12 +82,36 @@ func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
 	// Transversal audit service
 	auditRecorder := appaudit.NewRecordAuditService(auditRepo, &gen, clk)
 
+	// Lifecycle metrics (nil when OTel is disabled — backwards compatible).
+	var wfLifecycle *workflowrun.LifecycleMetrics
+	var approvalLifecycle *approvals.LifecycleMetrics
+	var inst *metrics.Instruments
+
+	if cfg.OTelEnabled {
+		meter := otel.Meter("governance")
+		inst, err = metrics.NewInstruments(meter)
+		if err != nil {
+			return nil, fmt.Errorf("otel instruments: %w", err)
+		}
+
+		wfLifecycle = &workflowrun.LifecycleMetrics{
+			TasksCompleted:    inst.TasksCompleted,
+			WorkflowDuration:  inst.WorkflowDuration,
+			ExecutionFailures: inst.ExecutionFailures,
+		}
+		approvalLifecycle = &approvals.LifecycleMetrics{
+			ApprovalWait:     inst.ApprovalWait,
+			TasksCompleted:   inst.TasksCompleted,
+			WorkflowDuration: inst.WorkflowDuration,
+		}
+	}
+
 	// Application services
 	submitTaskSvc := intake.NewSubmitTaskService(taskRepo, &gen, clk, auditRecorder, memProvider)
 	routeTaskSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider)
 	evalPolicySvc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, &gen, clk, auditRecorder)
-	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, nil)
-	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier, nil)
+	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle)
+	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier, approvalLifecycle)
 	queryAuditSvc := appaudit.NewQueryAuditService(auditRepo)
 	escalationSvc := escalation.NewEscalationService(escalationRepo, &gen, clk, auditRecorder)
 
@@ -82,28 +119,53 @@ func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
 	processTaskSvc := intake.NewProcessTaskService(submitTaskSvc, routeTaskSvc, evalPolicySvc, workflowSvc)
 
 	// Adapter structs that implement inbound port interfaces
-	govSvc := &governanceServiceAdapter{
+	govAdapter := &governanceServiceAdapter{
 		submit:   submitTaskSvc,
 		process:  processTaskSvc,
 		route:    routeTaskSvc,
 		policy:   evalPolicySvc,
 		workflow: workflowSvc,
 	}
-	querySvc := &queryServiceAdapter{
+	queryAdapter := &queryServiceAdapter{
 		taskRepo:    taskRepo,
 		workflowSvc: workflowSvc,
 		auditQuery:  queryAuditSvc,
 	}
 
+	// Inbound port interfaces — wrapped with decorators when OTel is enabled.
+	var govSvc inbound.GovernanceService = govAdapter
+	var wfCtrl inbound.WorkflowControl = workflowSvc
+	var approvalPort inbound.ApprovalService = approvalSvc
+	var escalationPort inbound.EscalationPort = escalationSvc
+	var queryPort inbound.QueryService = queryAdapter
+
+	if cfg.OTelEnabled {
+		tracer := otel.Tracer("governance")
+
+		// Wrapping order: metrics inner, tracing outer.
+		govSvc = metrics.NewMetricsGovernanceService(govSvc, inst)
+		govSvc = tracing.NewTracedGovernanceService(govSvc, tracer)
+
+		wfCtrl = metrics.NewMetricsWorkflowControl(wfCtrl, inst)
+		wfCtrl = tracing.NewTracedWorkflowControl(wfCtrl, tracer)
+
+		approvalPort = tracing.NewTracedApprovalService(approvalPort, tracer)
+
+		escalationPort = tracing.NewTracedEscalationPort(escalationPort, tracer)
+
+		queryPort = tracing.NewTracedQueryService(queryPort, tracer)
+	}
+
 	// HTTP Server + SDK Facade
-	httpServer := httpAdapter.NewServer(govSvc, workflowSvc, approvalSvc, querySvc, escalationSvc)
-	facade := sdk.NewGovernanceFacade(govSvc, workflowSvc, approvalSvc, querySvc, escalationSvc)
+	httpServer := httpAdapter.NewServer(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
+	facade := sdk.NewGovernanceFacade(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
 
 	return &App{
-		HTTPServer: httpServer,
-		Facade:     facade,
-		Notifier:   notifier,
-	}
+		HTTPServer:   httpServer,
+		Facade:       facade,
+		Notifier:     notifier,
+		OTelShutdown: otelShutdown,
+	}, nil
 }
 
 // governanceServiceAdapter implements inbound.GovernanceService.
