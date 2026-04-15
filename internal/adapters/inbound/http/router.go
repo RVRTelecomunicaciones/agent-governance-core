@@ -15,6 +15,7 @@ type Server struct {
 	control    inbound.WorkflowControl
 	approvals  inbound.ApprovalService
 	queries    inbound.QueryService
+	escalation inbound.EscalationPort
 }
 
 // NewServer creates a configured HTTP server with all routes registered.
@@ -23,6 +24,7 @@ func NewServer(
 	control inbound.WorkflowControl,
 	approvals inbound.ApprovalService,
 	queries inbound.QueryService,
+	escalation inbound.EscalationPort,
 ) *Server {
 	s := &Server{
 		router:     chi.NewRouter(),
@@ -30,6 +32,7 @@ func NewServer(
 		control:    control,
 		approvals:  approvals,
 		queries:    queries,
+		escalation: escalation,
 	}
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
@@ -53,6 +56,7 @@ func (s *Server) routes() {
 		r.Post("/tasks/{taskID}/evaluate-policy", s.handleEvaluatePolicy)
 		r.Post("/tasks/{taskID}/start-workflow", s.handleStartWorkflow)
 		r.Post("/tasks/{taskID}/process", s.handleProcessTask)
+		r.Post("/tasks/{taskID}/escalate", s.handleTriggerEscalation)
 
 		// Workflows
 		r.Get("/workflows/{workflowID}", s.handleGetWorkflowStatus)

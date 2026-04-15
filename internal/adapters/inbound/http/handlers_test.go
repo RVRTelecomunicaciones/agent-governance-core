@@ -12,6 +12,7 @@ import (
 	adapter "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
+	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
 	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
 	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
@@ -147,6 +148,17 @@ func (m *mockQueryService) QueryAuditTrail(ctx context.Context, filter outbound.
 	return nil, 0, nil
 }
 
+type mockEscalationService struct {
+	triggerFn func(ctx context.Context, taskID shared.TaskID, condition escalationdomain.EscalationCondition, target escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error)
+}
+
+func (m *mockEscalationService) TriggerEscalation(ctx context.Context, taskID shared.TaskID, condition escalationdomain.EscalationCondition, target escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {
+	if m.triggerFn != nil {
+		return m.triggerFn(ctx, taskID, condition, target)
+	}
+	return nil, nil
+}
+
 // --- Helpers ---
 
 // Valid ULID for tests
@@ -157,6 +169,7 @@ func newTestServer(
 	ctrl *mockWorkflowControl,
 	approvals *mockApprovalService,
 	queries *mockQueryService,
+	opts ...func(*mockEscalationService),
 ) *adapter.Server {
 	if gov == nil {
 		gov = &mockGovernanceService{}
@@ -170,7 +183,11 @@ func newTestServer(
 	if queries == nil {
 		queries = &mockQueryService{}
 	}
-	return adapter.NewServer(gov, ctrl, approvals, queries)
+	esc := &mockEscalationService{}
+	for _, o := range opts {
+		o(esc)
+	}
+	return adapter.NewServer(gov, ctrl, approvals, queries, esc)
 }
 
 func doRequest(srv http.Handler, method, path string, body any) *httptest.ResponseRecorder {
@@ -540,4 +557,62 @@ func TestRegisterAttempt_InvalidFailureStage(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 	errResp := parseErrorResponse(t, rec)
 	assert.Equal(t, "INVALID_FAILURE_STAGE", errResp.Code)
+}
+
+func TestTriggerEscalation_Valid(t *testing.T) {
+	now := shared.MustTimestamp(time.Now())
+	condition := escalationdomain.EscalationCondition{Type: "timeout", Parameters: map[string]any{"threshold": 300}}
+	trigger := escalationdomain.NewEscalationTrigger(
+		shared.EscalationTriggerID(testULID),
+		shared.TaskID(testULID),
+		condition,
+		escalationdomain.TargetHuman,
+		now,
+	)
+	_ = trigger.Trigger(now)
+
+	srv := newTestServer(nil, nil, nil, nil, func(m *mockEscalationService) {
+		m.triggerFn = func(_ context.Context, taskID shared.TaskID, cond escalationdomain.EscalationCondition, target escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {
+			assert.Equal(t, shared.TaskID(testULID), taskID)
+			assert.Equal(t, "timeout", cond.Type)
+			assert.Equal(t, escalationdomain.TargetHuman, target)
+			return trigger, nil
+		}
+	})
+
+	rec := doRequest(srv, "POST", "/api/v1/tasks/"+testULID+"/escalate", map[string]any{
+		"condition_type": "timeout",
+		"condition_params": map[string]any{"threshold": 300},
+		"target":         "human",
+	})
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	var resp map[string]any
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&resp))
+	assert.Equal(t, testULID, resp["id"])
+	assert.Equal(t, "triggered", resp["status"])
+	assert.Equal(t, "human", resp["target"])
+}
+
+func TestTriggerEscalation_InvalidTarget(t *testing.T) {
+	srv := newTestServer(nil, nil, nil, nil)
+	rec := doRequest(srv, "POST", "/api/v1/tasks/"+testULID+"/escalate", map[string]any{
+		"condition_type": "timeout",
+		"target":         "nobody",
+	})
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	errResp := parseErrorResponse(t, rec)
+	assert.Equal(t, "INVALID_ESCALATION_TARGET", errResp.Code)
+}
+
+func TestTriggerEscalation_MissingConditionType(t *testing.T) {
+	srv := newTestServer(nil, nil, nil, nil)
+	rec := doRequest(srv, "POST", "/api/v1/tasks/"+testULID+"/escalate", map[string]any{
+		"target": "human",
+	})
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	errResp := parseErrorResponse(t, rec)
+	assert.Equal(t, "MISSING_CONDITION_TYPE", errResp.Code)
 }

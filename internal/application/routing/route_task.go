@@ -7,6 +7,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/russellcxl/agent-governance-core/internal/domain/task"
 	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
 	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
@@ -118,10 +119,78 @@ func (s *RouteTaskService) RouteTask(ctx context.Context, taskID shared.TaskID) 
 		return nil, fmt.Errorf("recording audit: %w", err)
 	}
 
-	// 9. Handle decompose strategy
+	// 9. Handle decompose strategy — create subtasks
 	if result.SelectedStrategy == routing.StrategyDecompose {
-		// Phase 2: implement decompose subtask creation
+		if err := s.createDecomposeSubtasks(ctx, t, now); err != nil {
+			return nil, fmt.Errorf("creating decompose subtasks: %w", err)
+		}
 	}
 
 	return rd, nil
+}
+
+// childScope returns the scope one level down from the parent scope.
+func childScope(parent task.TaskScope) task.TaskScope {
+	switch parent {
+	case task.ScopeSystem:
+		return task.ScopeRepo
+	case task.ScopeRepo:
+		return task.ScopeModule
+	case task.ScopeModule:
+		return task.ScopeFile
+	default:
+		return task.ScopeFile
+	}
+}
+
+// subtaskSuffix returns the descriptive suffixes for the two subtasks based on parent scope.
+func subtaskSuffixes(parent task.TaskScope) (string, string) {
+	switch parent {
+	case task.ScopeSystem:
+		return "implementation", "review"
+	case task.ScopeRepo:
+		return "implementation", "testing"
+	default:
+		return "part 1", "part 2"
+	}
+}
+
+// createDecomposeSubtasks creates two subtasks for a decomposed parent task.
+func (s *RouteTaskService) createDecomposeSubtasks(ctx context.Context, parent *task.Task, now shared.Timestamp) error {
+	childScp := childScope(parent.Scope())
+	suffix1, suffix2 := subtaskSuffixes(parent.Scope())
+	parentID := parent.ID()
+	systemActor := shared.ActorID("system")
+
+	for _, suffix := range []string{suffix1, suffix2} {
+		subID := s.idGen.NewTaskID()
+		title := fmt.Sprintf("[decompose] %s - %s", parent.Title(), suffix)
+
+		sub, err := task.NewTask(
+			subID,
+			&parentID,
+			parent.Type(),
+			title,
+			childScp,
+			parent.Priority(),
+			parent.RiskLevel(),
+			nil,
+			now,
+		)
+		if err != nil {
+			return fmt.Errorf("creating subtask %q: %w", suffix, err)
+		}
+
+		if err := s.taskRepo.Save(ctx, sub); err != nil {
+			return fmt.Errorf("persisting subtask %q: %w", suffix, err)
+		}
+
+		auditCtx := audit.NewAuditContext().
+			Set("parent_task_id", parentID.String())
+		if err := s.audit.Record(ctx, systemActor, "subtask_created", suffix, auditCtx, &subID, nil); err != nil {
+			return fmt.Errorf("auditing subtask %q: %w", suffix, err)
+		}
+	}
+
+	return nil
 }

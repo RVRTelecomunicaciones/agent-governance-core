@@ -5,6 +5,7 @@ import (
 
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
+	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
 	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
 	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
@@ -22,6 +23,7 @@ type GovernanceFacade struct {
 	control    inbound.WorkflowControl
 	approvals  inbound.ApprovalService
 	queries    inbound.QueryService
+	escalation inbound.EscalationPort
 }
 
 func NewGovernanceFacade(
@@ -29,12 +31,14 @@ func NewGovernanceFacade(
 	control inbound.WorkflowControl,
 	approvals inbound.ApprovalService,
 	queries inbound.QueryService,
+	escalation inbound.EscalationPort,
 ) *GovernanceFacade {
 	return &GovernanceFacade{
 		governance: governance,
 		control:    control,
 		approvals:  approvals,
 		queries:    queries,
+		escalation: escalation,
 	}
 }
 
@@ -104,4 +108,10 @@ func (f *GovernanceFacade) GetWorkflowByTask(ctx context.Context, taskID shared.
 
 func (f *GovernanceFacade) QueryAuditTrail(ctx context.Context, filter outbound.AuditFilter) ([]*audit.AuditEntry, int, error) {
 	return f.queries.QueryAuditTrail(ctx, filter)
+}
+
+// --- EscalationPort methods ---
+
+func (f *GovernanceFacade) TriggerEscalation(ctx context.Context, taskID shared.TaskID, condition escalationdomain.EscalationCondition, target escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {
+	return f.escalation.TriggerEscalation(ctx, taskID, condition, target)
 }

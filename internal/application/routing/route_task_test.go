@@ -24,10 +24,13 @@ import (
 // --- Inline mocks ---
 
 type mockTaskRepo struct {
+	mu    sync.Mutex
 	tasks map[shared.TaskID]*task.Task
 }
 
 func (m *mockTaskRepo) FindByID(_ context.Context, id shared.TaskID) (*task.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	t, ok := m.tasks[id]
 	if !ok {
 		return nil, fmt.Errorf("task not found: %s", id)
@@ -35,9 +38,25 @@ func (m *mockTaskRepo) FindByID(_ context.Context, id shared.TaskID) (*task.Task
 	return t, nil
 }
 
-func (m *mockTaskRepo) Save(_ context.Context, _ *task.Task) error            { return nil }
-func (m *mockTaskRepo) FindByParentID(_ context.Context, _ shared.TaskID) ([]*task.Task, error) {
-	return nil, nil
+func (m *mockTaskRepo) Save(_ context.Context, t *task.Task) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.tasks == nil {
+		m.tasks = make(map[shared.TaskID]*task.Task)
+	}
+	m.tasks[t.ID()] = t
+	return nil
+}
+func (m *mockTaskRepo) FindByParentID(_ context.Context, parentID shared.TaskID) ([]*task.Task, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var result []*task.Task
+	for _, t := range m.tasks {
+		if t.ParentTaskID() != nil && *t.ParentTaskID() == parentID {
+			result = append(result, t)
+		}
+	}
+	return result, nil
 }
 func (m *mockTaskRepo) UpdateStatus(_ context.Context, _ *task.Task) error { return nil }
 
@@ -368,4 +387,81 @@ func TestRouteTask_CriticalRiskEscalates(t *testing.T) {
 	require.NotNil(t, rd)
 	assert.Equal(t, domainrouting.StrategyEscalate, rd.SelectedStrategy())
 	assert.Equal(t, domainrouting.RoleHuman, rd.SelectedAgentRole())
+}
+
+func TestRouteTask_DecomposeCreatesSubtasks(t *testing.T) {
+	// Force decompose strategy via metadata override
+	tk := fixtures.NewTestTask(
+		fixtures.WithTaskScope(task.ScopeSystem),
+		fixtures.WithTaskMetadata(task.TaskMetadata{"force_strategy": "decompose"}),
+	)
+	taskRepo := &mockTaskRepo{tasks: map[shared.TaskID]*task.Task{tk.ID(): tk}}
+	routingRepo := &mockRoutingRepo{}
+	wfRepo := &mockWfRepo{}
+	idGen := &mockIDGen{}
+	clock := newMockClock()
+	auditRec := &mockAuditRecorder{}
+
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	rd, err := svc.RouteTask(context.Background(), tk.ID())
+
+	require.NoError(t, err)
+	require.NotNil(t, rd)
+	assert.Equal(t, domainrouting.StrategyDecompose, rd.SelectedStrategy())
+
+	// Verify subtasks were created
+	subtasks, err := taskRepo.FindByParentID(context.Background(), tk.ID())
+	require.NoError(t, err)
+	require.Len(t, subtasks, 2)
+
+	for _, sub := range subtasks {
+		assert.NotNil(t, sub.ParentTaskID())
+		assert.Equal(t, tk.ID(), *sub.ParentTaskID())
+		assert.Equal(t, task.ScopeRepo, sub.Scope(), "system scope should decompose to repo")
+		assert.Equal(t, tk.Type(), sub.Type())
+		assert.Equal(t, tk.Priority(), sub.Priority())
+		assert.Equal(t, tk.RiskLevel(), sub.RiskLevel())
+		assert.Equal(t, task.StatusCreated, sub.Status())
+		assert.Contains(t, sub.Title(), "[decompose]")
+		assert.Contains(t, sub.Title(), tk.Title())
+	}
+
+	// Verify audit entries for subtask creation
+	auditRec.mu.Lock()
+	defer auditRec.mu.Unlock()
+	subtaskAudits := 0
+	for _, call := range auditRec.calls {
+		if call.action == "subtask_created" {
+			subtaskAudits++
+			assert.Equal(t, tk.ID().String(), call.ctx["parent_task_id"])
+		}
+	}
+	assert.Equal(t, 2, subtaskAudits)
+}
+
+func TestRouteTask_DecomposeRepoScopeCreatesModuleSubtasks(t *testing.T) {
+	tk := fixtures.NewTestTask(
+		fixtures.WithTaskScope(task.ScopeRepo),
+		fixtures.WithTaskMetadata(task.TaskMetadata{"force_strategy": "decompose"}),
+	)
+	taskRepo := &mockTaskRepo{tasks: map[shared.TaskID]*task.Task{tk.ID(): tk}}
+	routingRepo := &mockRoutingRepo{}
+	wfRepo := &mockWfRepo{}
+	idGen := &mockIDGen{}
+	clock := newMockClock()
+	auditRec := &mockAuditRecorder{}
+
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	rd, err := svc.RouteTask(context.Background(), tk.ID())
+
+	require.NoError(t, err)
+	require.NotNil(t, rd)
+
+	subtasks, err := taskRepo.FindByParentID(context.Background(), tk.ID())
+	require.NoError(t, err)
+	require.Len(t, subtasks, 2)
+
+	for _, sub := range subtasks {
+		assert.Equal(t, task.ScopeModule, sub.Scope(), "repo scope should decompose to module")
+	}
 }

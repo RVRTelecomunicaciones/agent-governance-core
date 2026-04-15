@@ -34,6 +34,7 @@ import (
 
 	// infrastructure
 	"github.com/russellcxl/agent-governance-core/internal/application/approvals"
+	"github.com/russellcxl/agent-governance-core/internal/application/escalation"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/clock"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/idgen"
 )
@@ -59,6 +60,7 @@ func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
 	policyRepo := persistence.NewPgPolicyDecisionRepository(pool)
 	approvalRepo := persistence.NewPgApprovalRequestRepository(pool)
 	auditRepo := persistence.NewPgAuditEntryRepository(pool)
+	escalationRepo := persistence.NewPgEscalationTriggerRepository(pool)
 
 	// Outbound adapters
 	memProvider := memory.NewStubMemoryContextProvider(logger)
@@ -74,6 +76,7 @@ func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
 	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier)
 	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier)
 	queryAuditSvc := appaudit.NewQueryAuditService(auditRepo)
+	escalationSvc := escalation.NewEscalationService(escalationRepo, &gen, clk, auditRecorder)
 
 	// ProcessTask coordinator
 	processTaskSvc := intake.NewProcessTaskService(submitTaskSvc, routeTaskSvc, evalPolicySvc, workflowSvc)
@@ -93,8 +96,8 @@ func Wire(pool *pgxpool.Pool, logger *slog.Logger) *App {
 	}
 
 	// HTTP Server + SDK Facade
-	httpServer := httpAdapter.NewServer(govSvc, workflowSvc, approvalSvc, querySvc)
-	facade := sdk.NewGovernanceFacade(govSvc, workflowSvc, approvalSvc, querySvc)
+	httpServer := httpAdapter.NewServer(govSvc, workflowSvc, approvalSvc, querySvc, escalationSvc)
+	facade := sdk.NewGovernanceFacade(govSvc, workflowSvc, approvalSvc, querySvc, escalationSvc)
 
 	return &App{
 		HTTPServer: httpServer,
@@ -164,3 +167,4 @@ var _ inbound.QueryService = (*queryServiceAdapter)(nil)
 // Compile-time checks for services that directly implement inbound ports.
 var _ inbound.WorkflowControl = (*workflowrun.WorkflowRunService)(nil)
 var _ inbound.ApprovalService = (*approvals.ApprovalService)(nil)
+var _ inbound.EscalationPort = (*escalation.EscalationService)(nil)

@@ -9,6 +9,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/adapters/inbound/sdk"
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
+	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
 	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
 	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
@@ -99,6 +100,12 @@ func (m *mockQueryService) QueryAuditTrail(ctx context.Context, filter outbound.
 	return m.queryAuditFn(ctx, filter)
 }
 
+type mockEscalationPort struct{}
+
+func (m *mockEscalationPort) TriggerEscalation(_ context.Context, _ shared.TaskID, _ escalationdomain.EscalationCondition, _ escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {
+	return nil, nil
+}
+
 // --- Tests ---
 
 func TestFacade_DelegatesToGovernanceService(t *testing.T) {
@@ -124,7 +131,7 @@ func TestFacade_DelegatesToGovernanceService(t *testing.T) {
 		},
 	}
 
-	facade := sdk.NewGovernanceFacade(gov, &mockWorkflowControl{}, &mockApprovalService{}, &mockQueryService{})
+	facade := sdk.NewGovernanceFacade(gov, &mockWorkflowControl{}, &mockApprovalService{}, &mockQueryService{}, &mockEscalationPort{})
 
 	t.Run("SubmitTask delegates", func(t *testing.T) {
 		result, err := facade.SubmitTask(context.Background(), inbound.SubmitTaskInput{})
@@ -163,7 +170,7 @@ func TestFacade_DelegatesToWorkflowControl(t *testing.T) {
 		},
 	}
 
-	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, ctrl, &mockApprovalService{}, &mockQueryService{})
+	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, ctrl, &mockApprovalService{}, &mockQueryService{}, &mockEscalationPort{})
 
 	err := facade.KillWorkflow(context.Background(), shared.WorkflowRunID("01KP7XXH5Z4F9W4P14SNKPF787"), "test", shared.ActorID("admin"))
 	require.NoError(t, err)
@@ -182,7 +189,7 @@ func TestFacade_DelegatesToApprovalService(t *testing.T) {
 		},
 	}
 
-	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, &mockWorkflowControl{}, approvals, &mockQueryService{})
+	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, &mockWorkflowControl{}, approvals, &mockQueryService{}, &mockEscalationPort{})
 
 	_, err := facade.GetPendingApprovals(context.Background())
 	require.NoError(t, err)
@@ -209,7 +216,7 @@ func TestFacade_DelegatesToQueryService(t *testing.T) {
 		},
 	}
 
-	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, &mockWorkflowControl{}, &mockApprovalService{}, queries)
+	facade := sdk.NewGovernanceFacade(&mockGovernanceService{}, &mockWorkflowControl{}, &mockApprovalService{}, queries, &mockEscalationPort{})
 
 	t.Run("GetTask delegates", func(t *testing.T) {
 		result, err := facade.GetTask(context.Background(), taskID)
