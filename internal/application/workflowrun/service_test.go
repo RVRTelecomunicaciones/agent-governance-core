@@ -46,7 +46,7 @@ func newTestHarness() *testHarness {
 	}
 	h.svc = NewWorkflowRunService(
 		h.wfRepo, h.leaseRepo, h.taskRepo, h.routingRepo, h.policyRepo,
-		h.approvalRepo, h.idGen, h.clock, h.audit, h.notifier,
+		h.approvalRepo, h.idGen, h.clock, h.audit, h.notifier, nil,
 	)
 	return h
 }

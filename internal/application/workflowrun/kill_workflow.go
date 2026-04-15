@@ -3,6 +3,7 @@ package workflowrun
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
@@ -35,6 +36,9 @@ func (s *WorkflowRunService) KillWorkflow(ctx context.Context, id shared.Workflo
 	wfID := wf.ID
 	_ = s.audit.Record(ctx, actor, "workflow_killed", "killed", audit.NewAuditContext(), nil, &wfID)
 	_ = s.notifier.OnWorkflowTerminated(ctx, wf, reason)
+
+	durationMs := float64(time.Since(wf.CreatedAt.Time).Milliseconds())
+	s.lifecycleMetrics.emitTerminal(ctx, "killed", durationMs)
 
 	return nil
 }

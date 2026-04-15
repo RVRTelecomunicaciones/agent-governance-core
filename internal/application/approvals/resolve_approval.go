@@ -21,13 +21,14 @@ const (
 
 // ApprovalService handles approval resolution.
 type ApprovalService struct {
-	approvalRepo outbound.ApprovalRequestRepository
-	wfRepo       outbound.WorkflowRunRepository
-	leaseRepo    outbound.ExecutionLeaseRepository
-	idGen        outbound.IDGenerator
-	clock        outbound.Clock
-	auditRec     outbound.AuditRecorder
-	notifier     outbound.GovernanceNotifier
+	approvalRepo     outbound.ApprovalRequestRepository
+	wfRepo           outbound.WorkflowRunRepository
+	leaseRepo        outbound.ExecutionLeaseRepository
+	idGen            outbound.IDGenerator
+	clock            outbound.Clock
+	auditRec         outbound.AuditRecorder
+	notifier         outbound.GovernanceNotifier
+	lifecycleMetrics *LifecycleMetrics
 }
 
 // NewApprovalService creates an ApprovalService with all required dependencies.
@@ -39,15 +40,17 @@ func NewApprovalService(
 	clock outbound.Clock,
 	auditRec outbound.AuditRecorder,
 	notifier outbound.GovernanceNotifier,
+	lifecycleMetrics *LifecycleMetrics,
 ) *ApprovalService {
 	return &ApprovalService{
-		approvalRepo: approvalRepo,
-		wfRepo:       wfRepo,
-		leaseRepo:    leaseRepo,
-		idGen:        idGen,
-		clock:        clock,
-		auditRec:     auditRec,
-		notifier:     notifier,
+		approvalRepo:     approvalRepo,
+		wfRepo:           wfRepo,
+		leaseRepo:        leaseRepo,
+		idGen:            idGen,
+		clock:            clock,
+		auditRec:         auditRec,
+		notifier:         notifier,
+		lifecycleMetrics: lifecycleMetrics,
 	}
 }
 
@@ -137,6 +140,15 @@ func (s *ApprovalService) ResolveApproval(ctx context.Context, input inbound.Res
 		outcome = "denied"
 	}
 	_ = s.auditRec.Record(ctx, input.ResolvedBy, "approval_resolved", outcome, audit.NewAuditContext(), nil, &wfID)
+
+	// 8. Emit lifecycle metrics
+	waitMs := float64(time.Since(req.CreatedAt().Time).Milliseconds())
+	s.lifecycleMetrics.emitApprovalWait(ctx, waitMs, outcome)
+
+	if !input.Approved {
+		durationMs := float64(time.Since(wf.CreatedAt.Time).Milliseconds())
+		s.lifecycleMetrics.emitTerminal(ctx, "failed", durationMs)
+	}
 
 	return req, nil
 }

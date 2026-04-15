@@ -70,6 +70,8 @@ func (s *WorkflowRunService) StartWorkflow(ctx context.Context, taskID shared.Ta
 		}
 		_ = s.audit.Record(ctx, actor, "workflow_started", "denied", audit.NewAuditContext(), &tID, &wfID)
 		_ = s.notifier.OnWorkflowTerminated(ctx, wf, "policy denied")
+		durationMs := float64(time.Since(wf.CreatedAt.Time).Milliseconds())
+		s.lifecycleMetrics.emitTerminal(ctx, "failed", durationMs)
 		return wf, nil
 
 	case policy.OutcomeRequireApproval:

@@ -7,16 +7,17 @@ import (
 
 // WorkflowRunService coordinates WorkflowRun and ExecutionLease in the application layer.
 type WorkflowRunService struct {
-	wfRepo       outbound.WorkflowRunRepository
-	leaseRepo    outbound.ExecutionLeaseRepository
-	taskRepo     outbound.TaskRepository
-	routingRepo  outbound.RoutingDecisionRepository
-	policyRepo   outbound.PolicyDecisionRepository
-	approvalRepo outbound.ApprovalRequestRepository
-	idGen        outbound.IDGenerator
-	clock        outbound.Clock
-	audit        outbound.AuditRecorder
-	notifier     outbound.GovernanceNotifier
+	wfRepo           outbound.WorkflowRunRepository
+	leaseRepo        outbound.ExecutionLeaseRepository
+	taskRepo         outbound.TaskRepository
+	routingRepo      outbound.RoutingDecisionRepository
+	policyRepo       outbound.PolicyDecisionRepository
+	approvalRepo     outbound.ApprovalRequestRepository
+	idGen            outbound.IDGenerator
+	clock            outbound.Clock
+	audit            outbound.AuditRecorder
+	notifier         outbound.GovernanceNotifier
+	lifecycleMetrics *LifecycleMetrics
 }
 
 // NewWorkflowRunService creates a WorkflowRunService with all required dependencies.
@@ -31,17 +32,19 @@ func NewWorkflowRunService(
 	clock outbound.Clock,
 	audit outbound.AuditRecorder,
 	notifier outbound.GovernanceNotifier,
+	lifecycleMetrics *LifecycleMetrics,
 ) *WorkflowRunService {
 	return &WorkflowRunService{
-		wfRepo:       wfRepo,
-		leaseRepo:    leaseRepo,
-		taskRepo:     taskRepo,
-		routingRepo:  routingRepo,
-		policyRepo:   policyRepo,
-		approvalRepo: approvalRepo,
-		idGen:        idGen,
-		clock:        clock,
-		audit:        audit,
-		notifier:     notifier,
+		wfRepo:           wfRepo,
+		leaseRepo:        leaseRepo,
+		taskRepo:         taskRepo,
+		routingRepo:      routingRepo,
+		policyRepo:       policyRepo,
+		approvalRepo:     approvalRepo,
+		idGen:            idGen,
+		clock:            clock,
+		audit:            audit,
+		notifier:         notifier,
+		lifecycleMetrics: lifecycleMetrics,
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
@@ -95,6 +96,16 @@ func (s *WorkflowRunService) RegisterAttempt(ctx context.Context, id shared.Work
 	// 9. Notify if workflow terminated
 	if wf.Status.IsTerminal() {
 		_ = s.notifier.OnWorkflowTerminated(ctx, wf, string(wf.Status))
+	}
+
+	// 10. Emit lifecycle metrics
+	if wf.Status.IsTerminal() {
+		durationMs := float64(time.Since(wf.CreatedAt.Time).Milliseconds())
+		s.lifecycleMetrics.emitTerminal(ctx, string(wf.Status), durationMs)
+	}
+	if result.FailureStage != nil {
+		category := extractCategory(*result.FailureCode)
+		s.lifecycleMetrics.emitFailure(ctx, result.FailureStage.String(), category, *result.Retryable)
 	}
 
 	return wf, nil

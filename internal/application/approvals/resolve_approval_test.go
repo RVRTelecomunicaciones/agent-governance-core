@@ -175,7 +175,7 @@ func newTestHarness() *testHarness {
 		audit:        &mockAuditRecorder{},
 		notifier:     &mockNotifier{},
 	}
-	h.svc = NewApprovalService(h.approvalRepo, h.wfRepo, h.leaseRepo, h.idGen, h.clock, h.audit, h.notifier)
+	h.svc = NewApprovalService(h.approvalRepo, h.wfRepo, h.leaseRepo, h.idGen, h.clock, h.audit, h.notifier, nil)
 	return h
 }
 
