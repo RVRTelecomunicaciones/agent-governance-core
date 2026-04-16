@@ -44,6 +44,11 @@ func NewFailureStatsCollector(
 	}
 }
 
+// Refresh triggers an immediate stats refresh. Useful for testing.
+func (c *FailureStatsCollector) Refresh(ctx context.Context) {
+	c.refresh(ctx)
+}
+
 // Start runs the collector loop. It performs an immediate refresh, then
 // refreshes on each tick until ctx is cancelled.
 func (c *FailureStatsCollector) Start(ctx context.Context) {
