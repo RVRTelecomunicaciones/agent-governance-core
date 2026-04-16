@@ -388,3 +388,61 @@ func TestEvaluate_DefaultRoleMapping_Decompose(t *testing.T) {
 	result := routing.Evaluate(routing.EvaluatorInput{Task: tsk})
 	assert.Equal(t, routing.RoleArchitect, result.SelectedRole)
 }
+
+// --- Adaptive Adjustment Tests ---
+
+func TestEvaluate_WithAdaptiveAdjustment(t *testing.T) {
+	// Low risk bugfix + high failure rate on direct → direct should be penalized
+	tk := makeTask(t, task.TypeBugfix, task.ScopeFile, shared.PriorityLow, shared.RiskLevelLow, nil)
+	stats := &routing.FailureStats{
+		ByStrategyRoleCategory: map[routing.StatsKey]routing.FailureRate{
+			{Strategy: routing.StrategyDirect, Role: "implementer", Category: "tool"}: {Total: 40, Failures: 30, Rate: 0.75},
+		},
+		ByStrategyCategory: map[routing.StatsKey]routing.FailureRate{},
+		ByStrategy:         map[routing.RoutingStrategy]routing.FailureRate{},
+	}
+	result := routing.Evaluate(routing.EvaluatorInput{Task: tk, FailureStats: stats})
+	for _, eval := range result.Evaluations {
+		if eval.Strategy == routing.StrategyDirect {
+			assert.Less(t, eval.AdjustedScore, eval.Score)
+			assert.NotNil(t, eval.AdaptiveAdjustment)
+		}
+	}
+}
+
+func TestEvaluate_WithoutStats_IdenticalToBaseline(t *testing.T) {
+	tk := makeTask(t, task.TypeBugfix, task.ScopeFile, shared.PriorityLow, shared.RiskLevelLow, nil)
+	result := routing.Evaluate(routing.EvaluatorInput{Task: tk, FailureStats: nil})
+	for _, eval := range result.Evaluations {
+		assert.Equal(t, eval.Score, eval.AdjustedScore)
+		assert.Nil(t, eval.AdaptiveAdjustment)
+	}
+}
+
+func TestEvaluate_OverrideIgnoresAdaptive(t *testing.T) {
+	tk := makeTask(t, task.TypeDevelopment, task.ScopeFile, shared.PriorityLow, shared.RiskLevelCritical, nil)
+	stats := &routing.FailureStats{
+		ByStrategyRoleCategory: map[routing.StatsKey]routing.FailureRate{},
+		ByStrategyCategory:     map[routing.StatsKey]routing.FailureRate{},
+		ByStrategy: map[routing.RoutingStrategy]routing.FailureRate{
+			routing.StrategyEscalate: {Total: 100, Failures: 90, Rate: 0.9},
+		},
+	}
+	result := routing.Evaluate(routing.EvaluatorInput{Task: tk, FailureStats: stats})
+	assert.Equal(t, routing.StrategyEscalate, result.SelectedStrategy)
+	assert.Contains(t, result.Reason, "[override]")
+	assert.Nil(t, result.Evaluations[0].AdaptiveAdjustment)
+}
+
+func TestEvaluate_AdaptiveReasonTag(t *testing.T) {
+	tk := makeTask(t, task.TypeBugfix, task.ScopeFile, shared.PriorityLow, shared.RiskLevelLow, nil)
+	stats := &routing.FailureStats{
+		ByStrategyRoleCategory: map[routing.StatsKey]routing.FailureRate{},
+		ByStrategyCategory:     map[routing.StatsKey]routing.FailureRate{},
+		ByStrategy: map[routing.RoutingStrategy]routing.FailureRate{
+			routing.StrategyDirect: {Total: 40, Failures: 30, Rate: 0.75},
+		},
+	}
+	result := routing.Evaluate(routing.EvaluatorInput{Task: tk, FailureStats: stats})
+	assert.Contains(t, result.Reason, "[adaptive]")
+}

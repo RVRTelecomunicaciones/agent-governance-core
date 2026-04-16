@@ -11,6 +11,7 @@ import (
 type EvaluatorInput struct {
 	Task          *task.Task
 	MemoryContext *MemoryContext
+	FailureStats  *FailureStats // nil means no adaptation
 }
 
 // EvaluatorResult holds the outcome of routing evaluation.
@@ -47,11 +48,19 @@ func Evaluate(input EvaluatorInput) EvaluatorResult {
 	// Phase 2: Score-based evaluation
 	evals := scoreStrategies(t, input.MemoryContext)
 
-	// Phase 3: Tiebreaker — pick highest score, prefer simpler on tie
+	// Phase 2.5: Adaptive adjustment
+	evals = applyAdaptiveAdjustments(evals, input.FailureStats)
+
+	// Phase 3: Tiebreaker — uses AdjustedScore now
 	selected := tiebreak(evals)
 
 	role := defaultRoleMapping[selected.Strategy]
 	reason := fmt.Sprintf("score-based: %s scored %.4f", selected.Strategy, selected.Score)
+	if selected.AdaptiveAdjustment != nil {
+		reason = fmt.Sprintf("[adaptive] score-based: %s scored %.4f → adjusted to %.4f (failure_rate=%.2f, confidence=%.2f)",
+			selected.Strategy, selected.Score, selected.AdjustedScore,
+			selected.AdaptiveAdjustment.FailureRate, selected.AdaptiveAdjustment.Confidence)
+	}
 
 	return EvaluatorResult{
 		Evaluations:      evals,
@@ -90,11 +99,12 @@ func checkOverrides(t *task.Task) (EvaluatorResult, bool) {
 func overrideResult(strategy RoutingStrategy, reason string) EvaluatorResult {
 	role := defaultRoleMapping[strategy]
 	eval := StrategyEvaluation{
-		Strategy:     strategy,
-		Score:        1.0,
-		FactorScores: map[string]float64{},
-		Overridden:   true,
-		Reason:       reason,
+		Strategy:      strategy,
+		Score:         1.0,
+		AdjustedScore: 1.0, // overrides are not affected by adaptive
+		FactorScores:  map[string]float64{},
+		Overridden:    true,
+		Reason:        reason,
 	}
 	return EvaluatorResult{
 		Evaluations:      []StrategyEvaluation{eval},
@@ -126,11 +136,12 @@ func scoreStrategies(t *task.Task, memCtx *MemoryContext) []StrategyEvaluation {
 			factors["memory_heuristics"]*WeightMemoryHeuristics
 
 		evals = append(evals, StrategyEvaluation{
-			Strategy:     strategy,
-			Score:        score,
-			FactorScores: factors,
-			Overridden:   false,
-			Reason:       fmt.Sprintf("%s scored %.4f", strategy, score),
+			Strategy:      strategy,
+			Score:         score,
+			AdjustedScore: score, // default before adaptive
+			FactorScores:  factors,
+			Overridden:    false,
+			Reason:        fmt.Sprintf("%s scored %.4f", strategy, score),
 		})
 	}
 
@@ -149,9 +160,9 @@ func tiebreak(evals []StrategyEvaluation) StrategyEvaluation {
 
 	best := evals[0]
 	for _, e := range evals[1:] {
-		if e.Score > best.Score {
+		if e.AdjustedScore > best.AdjustedScore {
 			best = e
-		} else if e.Score == best.Score && simplicity[e.Strategy] < simplicity[best.Strategy] {
+		} else if e.AdjustedScore == best.AdjustedScore && simplicity[e.Strategy] < simplicity[best.Strategy] {
 			best = e
 		}
 	}
