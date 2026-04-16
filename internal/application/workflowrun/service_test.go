@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
 	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
 	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
@@ -46,7 +47,7 @@ func newTestHarness() *testHarness {
 	}
 	h.svc = NewWorkflowRunService(
 		h.wfRepo, h.leaseRepo, h.taskRepo, h.routingRepo, h.policyRepo,
-		h.approvalRepo, h.idGen, h.clock, h.audit, h.notifier, nil,
+		h.approvalRepo, h.idGen, h.clock, h.audit, h.notifier, nil, nil,
 	)
 	return h
 }
@@ -563,6 +564,81 @@ func TestGetWorkflowByTask(t *testing.T) {
 	got, err := h.svc.GetWorkflowByTask(ctx, taskID)
 	require.NoError(t, err)
 	assert.Equal(t, wf.ID, got.ID)
+}
+
+// ============================================================
+// Circuit Breaker integration tests
+// ============================================================
+
+func TestRegisterAttempt_ObservesBreakerOnFailure(t *testing.T) {
+	h := newTestHarness()
+	registry := resilience.NewCircuitBreakerRegistry()
+	h.svc.breakerRegistry = registry
+	ctx := context.Background()
+
+	taskID, _ := h.seedPolicyCheckedWorkflow(t, policy.OutcomeAllow)
+	wf, err := h.svc.StartWorkflow(ctx, taskID)
+	require.NoError(t, err)
+
+	stage := shared.FailureStageExecution
+	code := "tool/shell_timeout"
+	retryable := true
+	tool := "shell"
+	role := "implementer"
+	result := execution.AttemptResult{
+		Status:       execution.AttemptStatusFailure,
+		FailureStage: &stage,
+		FailureCode:  &code,
+		Retryable:    &retryable,
+		ToolName:     &tool,
+		AgentRole:    &role,
+	}
+
+	_, err = h.svc.RegisterAttempt(ctx, wf.ID, result)
+	require.NoError(t, err)
+
+	snap := registry.Get("shell", "implementer")
+	require.NotNil(t, snap)
+	assert.Equal(t, 1, snap.ConsecutiveFailures)
+}
+
+func TestRegisterAttempt_SkipsBreakerWhenRegistryNil(t *testing.T) {
+	h := newTestHarness()
+	h.svc.breakerRegistry = nil
+	ctx := context.Background()
+
+	taskID, _ := h.seedPolicyCheckedWorkflow(t, policy.OutcomeAllow)
+	wf, err := h.svc.StartWorkflow(ctx, taskID)
+	require.NoError(t, err)
+
+	result, err := execution.NewFailureResult(shared.FailureStageExecution, "tool/shell_timeout", true)
+	require.NoError(t, err)
+	result = result.WithToolName("shell").WithAgentRole("implementer")
+
+	_, err = h.svc.RegisterAttempt(ctx, wf.ID, result)
+	require.NoError(t, err)
+}
+
+func TestRegisterAttempt_SkipsBreakerWhenToolNameMissing(t *testing.T) {
+	h := newTestHarness()
+	registry := resilience.NewCircuitBreakerRegistry()
+	h.svc.breakerRegistry = registry
+	ctx := context.Background()
+
+	taskID, _ := h.seedPolicyCheckedWorkflow(t, policy.OutcomeAllow)
+	wf, err := h.svc.StartWorkflow(ctx, taskID)
+	require.NoError(t, err)
+
+	// Failure result WITHOUT ToolName (only AgentRole set)
+	result, err := execution.NewFailureResult(shared.FailureStageExecution, "tool/shell_timeout", true)
+	require.NoError(t, err)
+	result = result.WithAgentRole("implementer")
+
+	_, err = h.svc.RegisterAttempt(ctx, wf.ID, result)
+	require.NoError(t, err)
+
+	all := registry.List(resilience.BreakerFilter{})
+	assert.Empty(t, all)
 }
 
 // --- helper to create test tasks without fixtures package dependency ---

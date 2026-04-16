@@ -117,5 +117,11 @@ func (s *WorkflowRunService) RegisterAttempt(ctx context.Context, id shared.Work
 		s.lifecycleMetrics.emitFailure(ctx, result.FailureStage.String(), category, *result.Retryable)
 	}
 
+	// 11. Observe circuit breaker (signal-only, side-effect)
+	if s.breakerRegistry != nil && result.ToolName != nil && result.AgentRole != nil {
+		success := result.Status == execution.AttemptStatusSuccess
+		_, _ = s.breakerRegistry.Observe(ctx, *result.ToolName, *result.AgentRole, success, now.Time)
+	}
+
 	return wf, nil
 }

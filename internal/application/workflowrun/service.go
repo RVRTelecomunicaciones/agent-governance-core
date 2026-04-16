@@ -2,6 +2,7 @@
 package workflowrun
 
 import (
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
 
@@ -18,9 +19,11 @@ type WorkflowRunService struct {
 	audit            outbound.AuditRecorder
 	notifier         outbound.GovernanceNotifier
 	lifecycleMetrics *LifecycleMetrics
+	breakerRegistry  *resilience.CircuitBreakerRegistry // NEW — may be nil
 }
 
 // NewWorkflowRunService creates a WorkflowRunService with all required dependencies.
+// breakerRegistry may be nil; when nil, circuit breaker observation is a no-op.
 func NewWorkflowRunService(
 	wfRepo outbound.WorkflowRunRepository,
 	leaseRepo outbound.ExecutionLeaseRepository,
@@ -33,6 +36,7 @@ func NewWorkflowRunService(
 	audit outbound.AuditRecorder,
 	notifier outbound.GovernanceNotifier,
 	lifecycleMetrics *LifecycleMetrics,
+	breakerRegistry *resilience.CircuitBreakerRegistry,
 ) *WorkflowRunService {
 	return &WorkflowRunService{
 		wfRepo:           wfRepo,
@@ -46,5 +50,6 @@ func NewWorkflowRunService(
 		audit:            audit,
 		notifier:         notifier,
 		lifecycleMetrics: lifecycleMetrics,
+		breakerRegistry:  breakerRegistry,
 	}
 }
