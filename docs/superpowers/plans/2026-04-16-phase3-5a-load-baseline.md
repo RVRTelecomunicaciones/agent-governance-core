@@ -196,7 +196,7 @@ services:
     mem_limit: 1024m
 ```
 
-**Note on migrations:** `/docker-entrypoint-initdb.d` runs `.sql` files in alphabetical order on first pg init. Our `migrations/postgres/NNN_*.sql` files satisfy this naming. Volume is mounted read-only.
+**Note on migrations (D8 fix applied during execution):** Our migrations use goose annotations (`-- +goose Up`, `-- +goose Down`). If we dropped the raw `.sql` files into `/docker-entrypoint-initdb.d`, pg would run both sections, dropping what it just created. Workaround: mount migrations at `/migrations` (read-only) and drop an `init-db.sh` in `initdb.d` that extracts only the Up section with `awk` before piping to `psql -v ON_ERROR_STOP=1`. See `test/load/pg/init-db.sh`. This is a harness fix committed with T3.
 
 - [ ] **Step 2: Bring up the stack and verify health**
 
