@@ -2,6 +2,7 @@ package outbound
 
 import (
 	"context"
+	"time"
 
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
@@ -73,6 +74,8 @@ type AuditFilter struct {
 	WorkflowRunID *shared.WorkflowRunID
 	Actor         *shared.ActorID
 	Action        *string
+	CreatedAfter  *time.Time // WHERE created_at > $N
+	CreatedBefore *time.Time // WHERE created_at < $N
 	Limit         int
 	Offset        int
 }

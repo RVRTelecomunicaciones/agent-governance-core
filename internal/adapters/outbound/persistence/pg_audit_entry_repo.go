@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
@@ -86,93 +85,96 @@ func (r *PgAuditEntryRepository) Query(ctx context.Context, filter outbound.Audi
 		args = append(args, *filter.Action)
 		argIdx++
 	}
+	if filter.CreatedAfter != nil {
+		conditions = append(conditions, fmt.Sprintf("created_at > $%d", argIdx))
+		args = append(args, *filter.CreatedAfter)
+		argIdx++
+	}
+	if filter.CreatedBefore != nil {
+		conditions = append(conditions, fmt.Sprintf("created_at < $%d", argIdx))
+		args = append(args, *filter.CreatedBefore)
+		argIdx++
+	}
 
 	whereClause := ""
 	if len(conditions) > 0 {
 		whereClause = "WHERE " + strings.Join(conditions, " AND ")
 	}
 
-	// Count total matching rows
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM audit_entries %s", whereClause)
-	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("counting audit entries: %w", err)
+	// Build single query with COUNT(*) OVER() window function
+	limitClause := ""
+	if filter.Limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+		args = append(args, filter.Limit, filter.Offset)
 	}
 
-	// Fetch paginated results
-	dataQuery := fmt.Sprintf(`
-		SELECT id, task_id, workflow_run_id, actor, action, outcome, context, created_at
+	query := fmt.Sprintf(`
+		SELECT id, task_id, workflow_run_id, actor, action, outcome, context, created_at,
+		       COUNT(*) OVER() AS total_count
 		FROM audit_entries %s
 		ORDER BY created_at DESC
-		LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
-	args = append(args, filter.Limit, filter.Offset)
+		%s`, whereClause, limitClause)
 
-	rows, err := r.pool.Query(ctx, dataQuery, args...)
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("querying audit entries: %w", err)
 	}
 	defer rows.Close()
 
 	var entries []*audit.AuditEntry
+	var total int
 	for rows.Next() {
-		entry, err := scanAuditEntry(rows)
-		if err != nil {
-			return nil, 0, err
+		var (
+			id            string
+			taskID        *string
+			workflowRunID *string
+			actor         string
+			action        string
+			outcome       string
+			contextJSON   []byte
+			createdAt     shared.Timestamp
+			totalCount    int
+		)
+
+		if err := rows.Scan(&id, &taskID, &workflowRunID, &actor, &action, &outcome, &contextJSON, &createdAt.Time, &totalCount); err != nil {
+			return nil, 0, fmt.Errorf("scanning audit entry: %w", err)
 		}
-		entries = append(entries, entry)
+
+		if total == 0 {
+			total = totalCount
+		}
+
+		var actx audit.AuditContext
+		if err := json.Unmarshal(contextJSON, &actx); err != nil {
+			return nil, 0, fmt.Errorf("unmarshaling audit context: %w", err)
+		}
+
+		var tid *shared.TaskID
+		if taskID != nil {
+			t := shared.TaskID(*taskID)
+			tid = &t
+		}
+
+		var wid *shared.WorkflowRunID
+		if workflowRunID != nil {
+			w := shared.WorkflowRunID(*workflowRunID)
+			wid = &w
+		}
+
+		entries = append(entries, audit.ReconstructAuditEntry(
+			shared.AuditEntryID(id),
+			tid,
+			wid,
+			shared.ActorID(actor),
+			action,
+			outcome,
+			actx,
+			createdAt,
+		))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("iterating audit entries: %w", err)
 	}
 
 	return entries, total, nil
-}
-
-func scanAuditEntry(row scannable) (*audit.AuditEntry, error) {
-	var (
-		id            string
-		taskID        *string
-		workflowRunID *string
-		actor         string
-		action        string
-		outcome       string
-		contextJSON   []byte
-		createdAt     shared.Timestamp
-	)
-
-	err := row.Scan(&id, &taskID, &workflowRunID, &actor, &action, &outcome, &contextJSON, &createdAt.Time)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("audit entry not found")
-		}
-		return nil, fmt.Errorf("scanning audit entry: %w", err)
-	}
-
-	var ctx audit.AuditContext
-	if err := json.Unmarshal(contextJSON, &ctx); err != nil {
-		return nil, fmt.Errorf("unmarshaling audit context: %w", err)
-	}
-
-	var tid *shared.TaskID
-	if taskID != nil {
-		t := shared.TaskID(*taskID)
-		tid = &t
-	}
-
-	var wid *shared.WorkflowRunID
-	if workflowRunID != nil {
-		w := shared.WorkflowRunID(*workflowRunID)
-		wid = &w
-	}
-
-	return audit.ReconstructAuditEntry(
-		shared.AuditEntryID(id),
-		tid,
-		wid,
-		shared.ActorID(actor),
-		action,
-		outcome,
-		ctx,
-		createdAt,
-	), nil
 }
