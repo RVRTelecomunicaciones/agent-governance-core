@@ -188,7 +188,7 @@ Also at startup:
 |---|---|---|
 | `circuit_breaker_registry_started` | `empty` | `component: "circuit_breaker"` |
 
-This startup audit entry is **part of the normal stream of operational events**. It is not a special technical entry — it is a first-class audit entry that makes the deliberate reset visible in the trail.
+**Classification:** This is an **operational event of the circuit breaker component** — not a business event of any workflow. It is emitted **once per application startup**. It carries NO `task_id` and NO `workflow_run_id` (both nil) because it is not tied to any domain entity. It sits in the audit trail alongside workflow events to make the deliberate in-memory state reset visible to operators, but consumers filtering audit by `task_id`/`workflow_run_id` will not see it unless they explicitly query by `action=circuit_breaker_registry_started`.
 
 ### 6.2 Metrics (OTel)
 
@@ -201,15 +201,17 @@ No continuous gauge of current state in v1 — only counters. Cardinality note: 
 
 ### 6.3 Tracing
 
-The existing `RegisterAttempt` tracing decorator gains attributes when a state transition occurs:
+Breaker attributes are emitted on the `RegisterAttempt` span **only when a state transition actually occurs**. When the breaker observes an attempt without changing state, no breaker attributes are added to the span (keeps traces clean and signal-rich).
 
 | Attribute | Type | When present |
 |---|---|---|
-| `governance.breaker_state_changed` | bool | Always on RegisterAttempt |
+| `governance.breaker_state_changed` | bool | Only when changed (true) |
 | `governance.breaker_from_state` | string | Only when changed |
 | `governance.breaker_to_state` | string | Only when changed |
 | `governance.breaker_tool` | string | Only when changed |
 | `governance.breaker_role` | string | Only when changed |
+
+Rationale: omitting the boolean `false` case on every `RegisterAttempt` avoids noise in traces. The absence of breaker attributes already implies no transition occurred — that's the expected default.
 
 ### 6.4 HTTP query endpoint
 
