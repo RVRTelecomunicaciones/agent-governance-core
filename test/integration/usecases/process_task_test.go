@@ -343,8 +343,8 @@ func TestRetryBudgetExhausted(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// 6. After 3 failures (maxRetries=3), workflow should be failed
-	assert.Equal(t, domainworkflow.StatusFailed, wf.Status)
+	// 6. After 3 failures (maxRetries=3), workflow should be quarantined (budget exhausted)
+	assert.Equal(t, domainworkflow.StatusQuarantined, wf.Status)
 	assert.True(t, wf.Status.IsTerminal())
 
 	// 7. Verify lease is exhausted
