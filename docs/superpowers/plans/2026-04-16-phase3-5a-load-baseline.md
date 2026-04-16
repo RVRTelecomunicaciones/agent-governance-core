@@ -712,33 +712,16 @@ git commit -m "chore(load): capture load baseline results (happy / dlq / breaker
 
 ---
 
-## Task 10: Soak runs (3 flows × 30 min)
+## Task 10: Soak runs (3 flows × 30 min) — DEFERRED
 
-**Files:**
-- Modify: `test/load/results/` (writes JSON + pg.txt per run)
+**Status:** Deferred out of the current iteration. The runner script and k6 scripts already support `soak` intensity — no code changes required when it is picked up. See Task 11 findings doc which must call out soak as a named follow-up.
 
-- [ ] **Step 1: Happy path soak**
-
-Run: `cd test/load && ./runner.sh happy_path soak && cd -`
-Before starting, open `docker stats load-governance load-pg` in a second terminal. Note the CPU/MEM baseline at t=0, t=15min, t=30min. Record these three triplets in your working notes — they feed the soak section of the findings doc.
-Expected: 30-minute run completes; no panic; RSS drift noted.
-
-- [ ] **Step 2: DLQ soak**
-
-Run: `cd test/load && ./runner.sh dlq_flow soak && cd -`
-Same observations as Step 1.
-
-- [ ] **Step 3: Breaker soak**
-
-Run: `cd test/load && ./runner.sh breaker_flow soak && cd -`
-Same observations as Step 1.
-
-- [ ] **Step 4: Commit soak results**
-
-```bash
-git add test/load/results/
-git commit -m "chore(load): capture soak baseline results (happy / dlq / breaker)"
-```
+**When picked up:**
+- `cd test/load && ./runner.sh happy_path soak && cd -`
+- `cd test/load && ./runner.sh dlq_flow soak && cd -`
+- `cd test/load && ./runner.sh breaker_flow soak && cd -`
+- Capture `docker stats` at t=0 / t=15m / t=30m per run for drift tracking.
+- Append a "Soak results" section to `docs/observability/baseline-v0.6.0.md` and bump the doc header.
 
 ---
 
@@ -782,6 +765,7 @@ Use this exact template and fill in the measured numbers. Leave a section blank 
 **Harness:** docker-compose (pg 16-alpine + governance binary); stub memory-engine; stub notifier; OTel disabled
 **Tool:** k6
 **Purpose:** DISCOVERY baseline — NOT validation. No SLOs yet.
+**Scope of this iteration:** smoke + load ONLY. Soak (30-minute sustained) intentionally deferred. See "Follow-ups" section below.
 
 ---
 
@@ -791,13 +775,13 @@ Use this exact template and fill in the measured numbers. Leave a section blank 
 |---------------|-----------|-----|----------|--------|-------|----------|----------|----------|-------|
 | happy_path    | smoke     | 10  | 1m       |        |       |          |          |          |       |
 | happy_path    | load      | 50  | 5m       |        |       |          |          |          |       |
-| happy_path    | soak      | 50  | 30m      |        |       |          |          |          |       |
+| happy_path    | soak      | 50  | 30m      | DEFERRED — follow-up |||||||
 | dlq_flow      | smoke     | 5   | 1m       |        |       |          |          |          |       |
 | dlq_flow      | load      | 25  | 5m       |        |       |          |          |          |       |
-| dlq_flow      | soak      | 25  | 30m      |        |       |          |          |          |       |
+| dlq_flow      | soak      | 25  | 30m      | DEFERRED — follow-up |||||||
 | breaker_flow  | smoke     | 5   | 1m       |        |       |          |          |          |       |
 | breaker_flow  | load      | 25  | 5m       |        |       |          |          |          |       |
-| breaker_flow  | soak      | 25  | 30m      |        |       |          |          |          |       |
+| breaker_flow  | soak      | 25  | 30m      | DEFERRED — follow-up |||||||
 
 ---
 
@@ -857,9 +841,16 @@ If D8 (critical fix) was applied to unblock the harness, record the fix here.
 
 ---
 
+## Follow-ups (deferred from this iteration)
+
+- **Soak baseline (30-minute sustained) for all 3 flows.** Deferred to keep this iteration tight (~90 min wall-clock). The runner and k6 scripts already support the `soak` intensity — no code changes needed to pick it up. When executed, append a "Soak results" section here and bump the doc header. Purpose: detect memory/goroutine leaks and cumulative degradation that smoke+load cannot reveal.
+- **Re-run of any flow × intensity that looked suspicious** in this iteration. Each re-run is appended here (not replacing the original) so we keep the variability visible.
+- **Enable `pg_stat_statements`** in the tuned pg config for deeper slow-query analysis.
+- **Repeat the full matrix on a dedicated staging host** once one exists — single-host Mac numbers carry a local-host caveat.
+
 ## Hand-off to Phase 3.5.B
 
-The numbers above are the raw input for SLO definition in Phase 3.5.B. The SLO exercise should anchor targets to this baseline (e.g. "aim for P99 ≤ 2× current") rather than to aspirational numbers.
+The numbers above are the raw input for SLO definition in Phase 3.5.B. The SLO exercise should anchor targets to this baseline (e.g. "aim for P99 ≤ 2× current") rather than to aspirational numbers. Note that soak numbers are not yet available — SLOs involving sustained behaviour (memory stability, long-tail latency drift) should wait until soak runs are executed.
 ```
 
 - [ ] **Step 3: Commit**
