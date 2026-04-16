@@ -21,9 +21,10 @@ export const options = {
 
 const latAttempt  = new Trend('gov_attempt_ms', true);
 
-function postJSON(path, body) {
+function postJSON(path, body, name) {
   return http.post(`${BASE}${path}`, JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
+    tags: { name: name || path },
   });
 }
 
@@ -33,14 +34,14 @@ function createWorkflow(iter) {
     title: `dlq-${__VU}-${iter}`,
     scope: 'file',
     priority: 'normal',
-  });
+  }, 'POST /api/v1/tasks');
   if (sub.status >= 300) { return null; }
   const taskID = sub.json('id') || sub.json('task_id');
-  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {});
+  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {}, 'POST /api/v1/tasks/:id/route');
   if (rt.status >= 300) { return null; }
-  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' });
+  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' }, 'POST /api/v1/tasks/:id/evaluate-policy');
   if (ev.status >= 300) { return null; }
-  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {});
+  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {}, 'POST /api/v1/tasks/:id/start-workflow');
   if (st.status >= 300) { return null; }
   return st.json('id') || st.json('workflow_run_id');
 }
@@ -61,7 +62,7 @@ export default function () {
       retryable: true,
       tool_name: 'shell',
       agent_role: 'implementer',
-    });
+    }, 'POST /api/v1/workflows/:id/attempts');
     latAttempt.add(at.timings.duration);
     // Stop once server refuses further attempts (workflow terminal).
     if (at.status >= 400) { break; }

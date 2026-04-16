@@ -22,9 +22,10 @@ export const options = {
 const latAttempt = new Trend('gov_attempt_ms', true);
 const latList    = new Trend('gov_list_breakers_ms', true);
 
-function postJSON(path, body) {
+function postJSON(path, body, name) {
   return http.post(`${BASE}${path}`, JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
+    tags: { name: name || path },
   });
 }
 
@@ -34,14 +35,14 @@ function createWorkflow(tag) {
     title: `breaker-${tag}`,
     scope: 'file',
     priority: 'normal',
-  });
+  }, 'POST /api/v1/tasks');
   if (sub.status >= 300) { return null; }
   const taskID = sub.json('id') || sub.json('task_id');
-  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {});
+  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {}, 'POST /api/v1/tasks/:id/route');
   if (rt.status >= 300) { return null; }
-  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' });
+  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' }, 'POST /api/v1/tasks/:id/evaluate-policy');
   if (ev.status >= 300) { return null; }
-  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {});
+  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {}, 'POST /api/v1/tasks/:id/start-workflow');
   if (st.status >= 300) { return null; }
   return st.json('id') || st.json('workflow_run_id');
 }
@@ -59,13 +60,15 @@ export default function () {
       retryable: true,
       tool_name: 'shell',
       agent_role: 'implementer',
-    });
+    }, 'POST /api/v1/workflows/:id/attempts');
     latAttempt.add(at.timings.duration);
     if (at.status >= 400) { break; }
   }
 
   // Observe the tripped state.
-  const ls = http.get(`${BASE}/api/v1/breakers?state=open`);
+  const ls = http.get(`${BASE}/api/v1/breakers?state=open`, {
+    tags: { name: 'GET /api/v1/breakers' },
+  });
   latList.add(ls.timings.duration);
   check(ls, { 'list breakers 2xx': (r) => r.status >= 200 && r.status < 300 });
 

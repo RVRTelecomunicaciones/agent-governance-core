@@ -26,9 +26,10 @@ const latEval     = new Trend('gov_eval_ms',     true);
 const latStart    = new Trend('gov_start_ms',    true);
 const latAttempt  = new Trend('gov_attempt_ms',  true);
 
-function postJSON(path, body) {
+function postJSON(path, body, name) {
   return http.post(`${BASE}${path}`, JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
+    tags: { name: name || path },
   });
 }
 
@@ -39,41 +40,41 @@ export default function () {
     title: `load-${__VU}-${__ITER}`,
     scope: 'file',
     priority: 'normal',
-  });
+  }, 'POST /api/v1/tasks');
   latSubmit.add(sub.timings.duration);
   check(sub, { 'submit 2xx': (r) => r.status >= 200 && r.status < 300 });
   if (sub.status >= 300) { return; }
   const taskID = sub.json('id') || sub.json('task_id');
 
   // 2. Route
-  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {});
+  const rt = postJSON(`/api/v1/tasks/${taskID}/route`, {}, 'POST /api/v1/tasks/:id/route');
   latRoute.add(rt.timings.duration);
   check(rt, { 'route 2xx': (r) => r.status >= 200 && r.status < 300 });
   if (rt.status >= 300) { return; }
 
   // 3. Evaluate policy
-  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' });
+  const ev = postJSON(`/api/v1/tasks/${taskID}/evaluate-policy`, { action: 'file_write' }, 'POST /api/v1/tasks/:id/evaluate-policy');
   latEval.add(ev.timings.duration);
   check(ev, { 'eval 2xx': (r) => r.status >= 200 && r.status < 300 });
   if (ev.status >= 300) { return; }
 
   // 4. Start workflow
-  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {});
+  const st = postJSON(`/api/v1/tasks/${taskID}/start-workflow`, {}, 'POST /api/v1/tasks/:id/start-workflow');
   latStart.add(st.timings.duration);
   check(st, { 'start 2xx': (r) => r.status >= 200 && r.status < 300 });
   if (st.status >= 300) { return; }
   const wfID = st.json('id') || st.json('workflow_run_id');
 
-  // 5. Register 2 successful attempts
-  for (let i = 0; i < 2; i++) {
-    const at = postJSON(`/api/v1/workflows/${wfID}/attempts`, {
-      status: 'success',
-      tool_name: 'shell',
-      agent_role: 'implementer',
-    });
-    latAttempt.add(at.timings.duration);
-    check(at, { 'attempt 2xx': (r) => r.status >= 200 && r.status < 300 });
-  }
+  // 5. Register 1 success attempt → workflow completes (terminal).
+  //    Multiple success attempts are rejected by the state machine
+  //    (ErrTerminalWorkflow) — see register_attempt.go.
+  const at = postJSON(`/api/v1/workflows/${wfID}/attempts`, {
+    status: 'success',
+    tool_name: 'shell',
+    agent_role: 'implementer',
+  }, 'POST /api/v1/workflows/:id/attempts');
+  latAttempt.add(at.timings.duration);
+  check(at, { 'attempt 2xx': (r) => r.status >= 200 && r.status < 300 });
 
   sleep(0.1);
 }
