@@ -55,8 +55,8 @@ func (s *WorkflowRunService) RegisterAttempt(ctx context.Context, id shared.Work
 		if lease.HasRetryBudget() {
 			// Stay running — attempt recorded, budget not exhausted
 		} else {
-			if err := wf.Fail("retry budget exhausted", actor, now); err != nil {
-				return nil, fmt.Errorf("failing workflow: %w", err)
+			if err := wf.Quarantine("retry budget exhausted", actor, now); err != nil {
+				return nil, fmt.Errorf("quarantining workflow: %w", err)
 			}
 		}
 
@@ -93,9 +93,18 @@ func (s *WorkflowRunService) RegisterAttempt(ctx context.Context, id shared.Work
 	wfID := wf.ID
 	_ = s.audit.Record(ctx, actor, "attempt_registered", string(result.Status), auditCtx, nil, &wfID)
 
+	// Dedicated quarantine audit entry — emitted once on effective transition
+	if wf.Status == workflow.StatusQuarantined {
+		_ = s.audit.Record(ctx, actor, "workflow_quarantined", "budget_exhausted", auditCtx, nil, &wfID)
+	}
+
 	// 9. Notify if workflow terminated
 	if wf.Status.IsTerminal() {
-		_ = s.notifier.OnWorkflowTerminated(ctx, wf, string(wf.Status))
+		reason := string(wf.Status)
+		if wf.Status == workflow.StatusQuarantined {
+			reason = "quarantined:budget_exhausted"
+		}
+		_ = s.notifier.OnWorkflowTerminated(ctx, wf, reason)
 	}
 
 	// 10. Emit lifecycle metrics

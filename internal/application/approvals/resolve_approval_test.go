@@ -15,6 +15,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
 	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
+	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
 
 var errNotFound = errors.New("not found")
@@ -75,6 +76,10 @@ func (m *mockWfRepo) FindByTaskID(_ context.Context, _ shared.TaskID) (*workflow
 func (m *mockWfRepo) Update(_ context.Context, wf *workflow.WorkflowRun) error {
 	m.workflows[wf.ID] = wf
 	return nil
+}
+
+func (m *mockWfRepo) List(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return nil, 0, nil
 }
 
 type mockLeaseRepo struct {

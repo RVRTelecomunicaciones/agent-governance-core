@@ -110,3 +110,23 @@ func (t *TracedQueryService) QueryAuditTrail(ctx context.Context, filter outboun
 
 	return result, count, nil
 }
+
+func (t *TracedQueryService) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	ctx, span := t.tracer.Start(ctx, "QueryService.ListWorkflows",
+		trace.WithAttributes(
+			attribute.String("governance.action", "ListWorkflows"),
+		),
+	)
+	defer span.End()
+
+	result, count, err := t.next.ListWorkflows(ctx, filter)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		return nil, 0, err
+	}
+
+	span.SetAttributes(attribute.String("governance.outcome", "success"))
+
+	return result, count, nil
+}

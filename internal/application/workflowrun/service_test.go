@@ -465,7 +465,7 @@ func TestRegisterAttempt_FailureWithoutBudget_Failed(t *testing.T) {
 	failed, err := h.svc.RegisterAttempt(ctx, wf.ID, result)
 	require.NoError(t, err)
 
-	assert.Equal(t, workflow.StatusFailed, failed.Status)
+	assert.Equal(t, workflow.StatusQuarantined, failed.Status)
 
 	// Lease should be exhausted
 	lease, err = h.leaseRepo.FindByWorkflowRunID(ctx, wf.ID)
@@ -473,8 +473,20 @@ func TestRegisterAttempt_FailureWithoutBudget_Failed(t *testing.T) {
 	assert.Equal(t, execution.LeaseStatusExhausted, lease.Status)
 	assert.False(t, lease.HasRetryBudget())
 
-	// Notification
+	// Notification with quarantine reason
 	assert.Equal(t, 1, h.notifier.terminatedCalls)
+	assert.Equal(t, "quarantined:budget_exhausted", h.notifier.lastTerminatedReason)
+
+	// Verify quarantine audit entry
+	var quarantineAudit *auditRecord
+	for i := range h.audit.records {
+		if h.audit.records[i].Action == "workflow_quarantined" {
+			quarantineAudit = &h.audit.records[i]
+			break
+		}
+	}
+	require.NotNil(t, quarantineAudit, "expected workflow_quarantined audit entry")
+	assert.Equal(t, "budget_exhausted", quarantineAudit.Outcome)
 }
 
 func TestRegisterAttempt_OnTerminalWorkflow_Error(t *testing.T) {

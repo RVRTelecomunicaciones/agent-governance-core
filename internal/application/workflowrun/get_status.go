@@ -6,6 +6,7 @@ import (
 
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
 
 // GetWorkflowStatus returns a workflow run by its ID.
@@ -24,4 +25,9 @@ func (s *WorkflowRunService) GetWorkflowByTask(ctx context.Context, taskID share
 		return nil, fmt.Errorf("loading workflow by task: %w", err)
 	}
 	return wf, nil
+}
+
+// ListWorkflows returns workflow runs matching the given filter criteria.
+func (s *WorkflowRunService) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return s.wfRepo.List(ctx, filter)
 }

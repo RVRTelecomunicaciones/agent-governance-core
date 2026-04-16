@@ -29,6 +29,7 @@ type WorkflowRunRepository interface {
 	FindByID(ctx context.Context, id shared.WorkflowRunID) (*workflow.WorkflowRun, error)
 	FindByTaskID(ctx context.Context, taskID shared.TaskID) (*workflow.WorkflowRun, error)
 	Update(ctx context.Context, wf *workflow.WorkflowRun) error
+	List(ctx context.Context, filter WorkflowListFilter) ([]*workflow.WorkflowRun, int, error)
 }
 
 // ExecutionLeaseRepository defines persistence operations for the ExecutionLease aggregate.
@@ -66,6 +67,14 @@ type EscalationTriggerRepository interface {
 	Save(ctx context.Context, trigger *escalation.EscalationTrigger) error
 	FindByTaskID(ctx context.Context, taskID shared.TaskID) ([]*escalation.EscalationTrigger, error)
 	Update(ctx context.Context, trigger *escalation.EscalationTrigger) error
+}
+
+// WorkflowListFilter defines filter criteria for listing workflow runs.
+type WorkflowListFilter struct {
+	Status *workflow.WorkflowStatus
+	TaskID *shared.TaskID
+	Limit  int
+	Offset int
 }
 
 // AuditFilter defines filter criteria for querying audit entries.

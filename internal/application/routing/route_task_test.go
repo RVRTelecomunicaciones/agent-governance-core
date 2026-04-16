@@ -18,6 +18,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/russellcxl/agent-governance-core/internal/domain/task"
 	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 	"github.com/russellcxl/agent-governance-core/test/fixtures"
 )
 
@@ -126,6 +127,10 @@ func (m *mockWfRepo) Update(_ context.Context, wf *workflow.WorkflowRun) error {
 	defer m.mu.Unlock()
 	m.wfs[wf.TaskID] = wf
 	return nil
+}
+
+func (m *mockWfRepo) List(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return nil, 0, nil
 }
 
 type mockIDGen struct {

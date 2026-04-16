@@ -100,6 +100,10 @@ func (m *mockQueryService) QueryAuditTrail(ctx context.Context, filter outbound.
 	return m.queryAuditFn(ctx, filter)
 }
 
+func (m *mockQueryService) ListWorkflows(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return nil, 0, nil
+}
+
 type mockEscalationPort struct{}
 
 func (m *mockEscalationPort) TriggerEscalation(_ context.Context, _ shared.TaskID, _ escalationdomain.EscalationCondition, _ escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {

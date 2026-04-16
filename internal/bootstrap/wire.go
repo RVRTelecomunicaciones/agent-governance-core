@@ -235,6 +235,10 @@ func (q *queryServiceAdapter) QueryAuditTrail(ctx context.Context, filter outbou
 	return q.auditQuery.QueryAuditTrail(ctx, filter)
 }
 
+func (q *queryServiceAdapter) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return q.workflowSvc.ListWorkflows(ctx, filter)
+}
+
 // Compile-time check.
 var _ inbound.QueryService = (*queryServiceAdapter)(nil)
 

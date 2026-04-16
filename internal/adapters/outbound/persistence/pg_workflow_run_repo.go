@@ -117,6 +117,11 @@ func (r *PgWorkflowRunRepository) Update(ctx context.Context, wf *workflow.Workf
 	return nil
 }
 
+func (r *PgWorkflowRunRepository) List(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	// TODO: real implementation in T3
+	return nil, 0, nil
+}
+
 func scanWorkflowRun(row scannable) (*workflow.WorkflowRun, error) {
 	var (
 		id               string

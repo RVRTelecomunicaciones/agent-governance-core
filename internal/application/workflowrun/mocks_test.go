@@ -14,6 +14,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/russellcxl/agent-governance-core/internal/domain/task"
 	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
 
 // Ensure imports are used.
@@ -95,6 +96,10 @@ func (m *mockWfRepo) Update(_ context.Context, wf *workflow.WorkflowRun) error {
 	m.workflows[wf.ID] = wf
 	m.byTask[wf.TaskID] = wf
 	return nil
+}
+
+func (m *mockWfRepo) List(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return nil, 0, nil
 }
 
 // --- mockLeaseRepo ---

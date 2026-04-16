@@ -110,6 +110,10 @@ func (f *GovernanceFacade) QueryAuditTrail(ctx context.Context, filter outbound.
 	return f.queries.QueryAuditTrail(ctx, filter)
 }
 
+func (f *GovernanceFacade) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	return f.queries.ListWorkflows(ctx, filter)
+}
+
 // --- EscalationPort methods ---
 
 func (f *GovernanceFacade) TriggerEscalation(ctx context.Context, taskID shared.TaskID, condition escalationdomain.EscalationCondition, target escalationdomain.EscalationTarget) (*escalationdomain.EscalationTrigger, error) {
