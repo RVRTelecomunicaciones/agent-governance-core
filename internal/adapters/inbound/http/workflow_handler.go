@@ -2,12 +2,76 @@ package http
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
+
+var validWorkflowStatuses = map[string]bool{
+	string(workflow.StatusCreated):          true,
+	string(workflow.StatusRouted):           true,
+	string(workflow.StatusPolicyChecked):    true,
+	string(workflow.StatusRunning):          true,
+	string(workflow.StatusAwaitingApproval): true,
+	string(workflow.StatusApproved):         true,
+	string(workflow.StatusPaused):           true,
+	string(workflow.StatusCompleted):        true,
+	string(workflow.StatusFailed):           true,
+	string(workflow.StatusKilled):           true,
+	string(workflow.StatusQuarantined):      true,
+}
+
+func (s *Server) handleListWorkflows(w http.ResponseWriter, r *http.Request) {
+	statusParam := r.URL.Query().Get("status")
+	limitParam := r.URL.Query().Get("limit")
+	offsetParam := r.URL.Query().Get("offset")
+
+	filter := outbound.WorkflowListFilter{
+		Limit:  20,
+		Offset: 0,
+	}
+
+	if statusParam != "" {
+		if !validWorkflowStatuses[statusParam] {
+			writeError(w, http.StatusBadRequest, "INVALID_STATUS", fmt.Sprintf("invalid status: %s", statusParam))
+			return
+		}
+		status := workflow.WorkflowStatus(statusParam)
+		filter.Status = &status
+	}
+	if limitParam != "" {
+		if l, err := strconv.Atoi(limitParam); err == nil && l > 0 && l <= 100 {
+			filter.Limit = l
+		}
+	}
+	if offsetParam != "" {
+		if o, err := strconv.Atoi(offsetParam); err == nil && o >= 0 {
+			filter.Offset = o
+		}
+	}
+
+	workflows, total, err := s.queries.ListWorkflows(r.Context(), filter)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "LIST_FAILED", err.Error())
+		return
+	}
+
+	items := make([]workflowRunResponse, 0, len(workflows))
+	for _, wf := range workflows {
+		items = append(items, workflowRunToResponse(wf))
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"items": items,
+		"total": total,
+	})
+}
 
 func (s *Server) handleGetWorkflowStatus(w http.ResponseWriter, r *http.Request) {
 	rawID := chi.URLParam(r, "workflowID")

@@ -59,6 +59,7 @@ func (s *Server) routes() {
 		r.Post("/tasks/{taskID}/escalate", s.handleTriggerEscalation)
 
 		// Workflows
+		r.Get("/workflows", s.handleListWorkflows)
 		r.Get("/workflows/{workflowID}", s.handleGetWorkflowStatus)
 		r.Post("/workflows/{workflowID}/kill", s.handleKillWorkflow)
 		r.Post("/workflows/{workflowID}/pause", s.handlePauseWorkflow)

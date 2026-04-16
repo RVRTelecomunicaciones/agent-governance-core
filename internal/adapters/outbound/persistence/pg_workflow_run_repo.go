@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -117,9 +118,102 @@ func (r *PgWorkflowRunRepository) Update(ctx context.Context, wf *workflow.Workf
 	return nil
 }
 
-func (r *PgWorkflowRunRepository) List(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
-	// TODO: real implementation in T3
-	return nil, 0, nil
+func (r *PgWorkflowRunRepository) List(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
+	var conditions []string
+	var args []any
+	argIdx := 1
+
+	if filter.Status != nil {
+		conditions = append(conditions, fmt.Sprintf("status = $%d", argIdx))
+		args = append(args, string(*filter.Status))
+		argIdx++
+	}
+	if filter.TaskID != nil {
+		conditions = append(conditions, fmt.Sprintf("task_id = $%d", argIdx))
+		args = append(args, filter.TaskID.String())
+		argIdx++
+	}
+
+	whereClause := ""
+	if len(conditions) > 0 {
+		whereClause = "WHERE " + strings.Join(conditions, " AND ")
+	}
+
+	limitClause := ""
+	if filter.Limit > 0 {
+		limitClause = fmt.Sprintf("LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+		args = append(args, filter.Limit, filter.Offset)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, task_id, status, routing_decision_id, policy_decision_id,
+		       current_step_index, transitions, created_at, updated_at,
+		       COUNT(*) OVER() AS total_count
+		FROM workflow_runs %s
+		ORDER BY updated_at DESC
+		%s`, whereClause, limitClause)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("listing workflow runs: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*workflow.WorkflowRun
+	var total int
+	for rows.Next() {
+		var (
+			id               string
+			taskID           string
+			status           string
+			routingID        *string
+			policyID         *string
+			currentStepIndex int
+			transitionsJSON  []byte
+			createdAt        shared.Timestamp
+			updatedAt        shared.Timestamp
+			totalCount       int
+		)
+
+		if err := rows.Scan(&id, &taskID, &status, &routingID, &policyID, &currentStepIndex, &transitionsJSON, &createdAt.Time, &updatedAt.Time, &totalCount); err != nil {
+			return nil, 0, fmt.Errorf("scanning workflow run: %w", err)
+		}
+
+		if total == 0 {
+			total = totalCount
+		}
+
+		transitions, err := unmarshalTransitions(transitionsJSON)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		var rdID *shared.RoutingDecisionID
+		if routingID != nil {
+			rid := shared.RoutingDecisionID(*routingID)
+			rdID = &rid
+		}
+
+		var pdID *shared.PolicyDecisionID
+		if policyID != nil {
+			pid := shared.PolicyDecisionID(*policyID)
+			pdID = &pid
+		}
+
+		results = append(results, workflow.ReconstructWorkflowRun(
+			shared.WorkflowRunID(id),
+			shared.TaskID(taskID),
+			workflow.WorkflowStatus(status),
+			rdID,
+			pdID,
+			currentStepIndex,
+			transitions,
+			createdAt,
+			updatedAt,
+		))
+	}
+
+	return results, total, nil
 }
 
 func scanWorkflowRun(row scannable) (*workflow.WorkflowRun, error) {
