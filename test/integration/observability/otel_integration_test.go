@@ -128,7 +128,7 @@ func TestOTel_HappyPath_SpanTree(t *testing.T) {
 
 	// Application services
 	submitSvc := intake.NewSubmitTaskService(taskRepo, &gen, clk, auditRecorder, memProvider)
-	routeSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider)
+	routeSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider, nil)
 	policySvc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, &gen, clk, auditRecorder)
 	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle)
 

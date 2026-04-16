@@ -241,7 +241,7 @@ func TestRouteTask_LoadsTaskCreatesDecisionAndPersists(t *testing.T) {
 	auditRec := &mockAuditRecorder{}
 	memProvider := &mockMemoryProvider{memCtx: &domainrouting.MemoryContext{}}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, memProvider)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, memProvider, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestRouteTask_CreatesWorkflowRunIfNoneExists(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -289,7 +289,7 @@ func TestRouteTask_TransitionsExistingWorkflowRunToRouted(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	_, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -309,7 +309,7 @@ func TestRouteTask_RecordsAuditEntry(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	_, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -329,7 +329,7 @@ func TestRouteTask_WorksWithNilMemoryProvider(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -347,7 +347,7 @@ func TestRouteTask_WorksWhenMemoryReturnsError(t *testing.T) {
 	auditRec := &mockAuditRecorder{}
 	memProvider := &mockMemoryProvider{err: fmt.Errorf("memory unavailable")}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, memProvider)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, memProvider, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -362,7 +362,7 @@ func TestRouteTask_FailsWhenTaskNotFound(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	unknownID, _ := shared.NewTaskID(ulid.MustNew(ulid.Timestamp(time.Now()), rand.Reader).String())
 	rd, err := svc.RouteTask(context.Background(), unknownID)
 
@@ -380,7 +380,7 @@ func TestRouteTask_CriticalRiskEscalates(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -402,7 +402,7 @@ func TestRouteTask_DecomposeCreatesSubtasks(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)
@@ -451,7 +451,7 @@ func TestRouteTask_DecomposeRepoScopeCreatesModuleSubtasks(t *testing.T) {
 	clock := newMockClock()
 	auditRec := &mockAuditRecorder{}
 
-	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil)
+	svc := approuting.NewRouteTaskService(taskRepo, routingRepo, wfRepo, idGen, clock, auditRec, nil, nil)
 	rd, err := svc.RouteTask(context.Background(), tk.ID())
 
 	require.NoError(t, err)

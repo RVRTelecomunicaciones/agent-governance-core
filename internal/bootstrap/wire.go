@@ -106,9 +106,21 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 		}
 	}
 
+	// Adaptive routing (conditional)
+	var statsStore *routing.FailureStatsStore
+	if cfg.AdaptiveRoutingEnabled {
+		statsStore = routing.NewFailureStatsStore()
+		collector := routing.NewFailureStatsCollector(
+			statsStore, auditRepo,
+			routing.DefaultRefreshInterval, routing.DefaultStatsWindow,
+			logger,
+		)
+		go collector.Start(ctx)
+	}
+
 	// Application services
 	submitTaskSvc := intake.NewSubmitTaskService(taskRepo, &gen, clk, auditRecorder, memProvider)
-	routeTaskSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider)
+	routeTaskSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider, statsStore)
 	evalPolicySvc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, &gen, clk, auditRecorder)
 	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle)
 	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier, approvalLifecycle)

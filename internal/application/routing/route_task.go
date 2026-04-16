@@ -20,11 +20,13 @@ type RouteTaskService struct {
 	idGen       outbound.IDGenerator
 	clock       outbound.Clock
 	audit       outbound.AuditRecorder
-	memory      outbound.MemoryContextProvider // can be nil — degradable
+	memory     outbound.MemoryContextProvider // can be nil — degradable
+	statsStore *FailureStatsStore             // nil when adaptive routing disabled
 }
 
 // NewRouteTaskService creates a new RouteTaskService with all required dependencies.
 // memory can be nil — context enrichment will be skipped.
+// statsStore can be nil — adaptive routing adjustments will be skipped.
 func NewRouteTaskService(
 	taskRepo outbound.TaskRepository,
 	routingRepo outbound.RoutingDecisionRepository,
@@ -33,6 +35,7 @@ func NewRouteTaskService(
 	clock outbound.Clock,
 	audit outbound.AuditRecorder,
 	memory outbound.MemoryContextProvider,
+	statsStore *FailureStatsStore,
 ) *RouteTaskService {
 	return &RouteTaskService{
 		taskRepo:    taskRepo,
@@ -42,6 +45,7 @@ func NewRouteTaskService(
 		clock:       clock,
 		audit:       audit,
 		memory:      memory,
+		statsStore:  statsStore,
 	}
 }
 
@@ -64,9 +68,15 @@ func (s *RouteTaskService) RouteTask(ctx context.Context, taskID shared.TaskID) 
 	}
 
 	// 3. Evaluate routing
+	var failureStats *routing.FailureStats
+	if s.statsStore != nil {
+		failureStats = s.statsStore.Get()
+	}
+
 	result := routing.Evaluate(routing.EvaluatorInput{
 		Task:          t,
 		MemoryContext: memCtx,
+		FailureStats:  failureStats,
 	})
 
 	// 4. Create routing decision

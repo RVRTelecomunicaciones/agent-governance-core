@@ -10,7 +10,8 @@
 //	DB_NAME       PostgreSQL database             (default: governance)
 //	DB_SSLMODE    PostgreSQL SSL mode             (default: disable)
 //	LOG_LEVEL     Log level (debug,info,warn,error) (default: info)
-//	OTEL_ENABLED  Enable OpenTelemetry             (default: false)
+//	OTEL_ENABLED              Enable OpenTelemetry             (default: false)
+//	ADAPTIVE_ROUTING_ENABLED  Enable adaptive routing           (default: false)
 package config
 
 import (
@@ -25,7 +26,8 @@ type Config struct {
 	ServerPort  int
 	DB          database.Config
 	LogLevel    string
-	OTelEnabled bool
+	OTelEnabled            bool
+	AdaptiveRoutingEnabled bool
 }
 
 // Load reads configuration from environment variables with sensible defaults.
@@ -41,7 +43,8 @@ func Load() Config {
 			SSLMode:  env("DB_SSLMODE", "disable"),
 		},
 		LogLevel:    env("LOG_LEVEL", "info"),
-		OTelEnabled: envBool("OTEL_ENABLED", false),
+		OTelEnabled:            envBool("OTEL_ENABLED", false),
+		AdaptiveRoutingEnabled: envBool("ADAPTIVE_ROUTING_ENABLED", false),
 	}
 }
 
