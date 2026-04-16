@@ -70,9 +70,11 @@ func (c *FailureStatsCollector) Start(ctx context.Context) {
 // refresh queries the audit trail and builds a new FailureStats snapshot.
 func (c *FailureStatsCollector) refresh(ctx context.Context) {
 	action := "attempt_registered"
+	cutoff := time.Now().Add(-c.window)
 	filter := outbound.AuditFilter{
-		Action: &action,
-		Limit:  10000,
+		Action:       &action,
+		CreatedAfter: &cutoff,
+		Limit:        0, // no artificial limit — time window bounds the result set
 	}
 
 	entries, _, err := c.repo.Query(ctx, filter)
@@ -82,17 +84,12 @@ func (c *FailureStatsCollector) refresh(ctx context.Context) {
 	}
 
 	now := time.Now()
-	cutoff := now.Add(-c.window)
 
 	byStratRoleCat := make(map[domainrouting.StatsKey]domainrouting.FailureRate)
 	byStratCat := make(map[domainrouting.StatsKey]domainrouting.FailureRate)
 	byStrat := make(map[domainrouting.RoutingStrategy]domainrouting.FailureRate)
 
 	for _, entry := range entries {
-		if entry.CreatedAt().Time.Before(cutoff) {
-			continue
-		}
-
 		actx := entry.Context()
 
 		strategyRaw, _ := actx["strategy_used"].(string)
