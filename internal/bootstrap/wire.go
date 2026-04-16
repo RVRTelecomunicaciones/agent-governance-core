@@ -119,11 +119,39 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 		go collector.Start(ctx)
 	}
 
+	// Circuit breaker registry — in-memory, resets on restart (deliberate).
+	breakerRegistry := resilience.NewCircuitBreakerRegistry()
+
+	// Attach listeners: always audit; metrics only when OTel is enabled.
+	var breakerListeners []resilience.TransitionListener
+	breakerListeners = append(breakerListeners, resilience.AuditListener(auditRecorder))
+
+	if cfg.OTelEnabled && inst != nil {
+		breakerListeners = append(breakerListeners, resilience.MetricsListener(resilience.MetricsListenerDeps{
+			Transitions: inst.CircuitBreakerTransitions,
+			Trips:       inst.CircuitBreakerTrips,
+		}))
+	}
+	breakerRegistry.SetTransitionListener(resilience.ChainListeners(breakerListeners...))
+
+	// Startup: operational event for the circuit_breaker component.
+	// Not a business workflow event — carries no task_id / workflow_run_id.
+	logger.Info("circuit breaker registry started (empty state, all breakers begin CLOSED)")
+	_ = auditRecorder.Record(
+		ctx,
+		shared.ActorID("system"),
+		"circuit_breaker_registry_started",
+		"empty",
+		auditDomain.NewAuditContext().Set("component", "circuit_breaker"),
+		nil, // no task_id
+		nil, // no workflow_run_id
+	)
+
 	// Application services
 	submitTaskSvc := intake.NewSubmitTaskService(taskRepo, &gen, clk, auditRecorder, memProvider)
 	routeTaskSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider, statsStore)
 	evalPolicySvc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, &gen, clk, auditRecorder)
-	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle, nil)
+	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle, breakerRegistry)
 	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier, approvalLifecycle)
 	queryAuditSvc := appaudit.NewQueryAuditService(auditRepo)
 	escalationSvc := escalation.NewEscalationService(escalationRepo, &gen, clk, auditRecorder)
@@ -143,7 +171,7 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 		taskRepo:        taskRepo,
 		workflowSvc:     workflowSvc,
 		auditQuery:      queryAuditSvc,
-		breakerRegistry: nil, // T6 will wire the real registry
+		breakerRegistry: breakerRegistry,
 	}
 
 	// Inbound port interfaces — wrapped with decorators when OTel is enabled.
