@@ -1,0 +1,14 @@
+-- active connections peak / current
+ count 
+-------
+     9
+(1 row)
+
+-- deadlocks
+ deadlocks 
+-----------
+         0
+(1 row)
+
+-- top 5 slowest
+(pg_stat_statements not enabled)
