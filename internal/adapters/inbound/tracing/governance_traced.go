@@ -106,6 +106,32 @@ func (t *TracedGovernanceService) RouteTask(ctx context.Context, taskID shared.T
 		attribute.String("governance.outcome", "routed"),
 	)
 
+	// Adaptive routing attributes
+	hasAdaptive := false
+	for _, eval := range result.EvaluatedStrategies() {
+		if eval.AdaptiveAdjustment != nil {
+			hasAdaptive = true
+			break
+		}
+	}
+	span.SetAttributes(attribute.Bool("governance.adaptive_applied", hasAdaptive))
+
+	if hasAdaptive {
+		for _, eval := range result.EvaluatedStrategies() {
+			if eval.Strategy == result.SelectedStrategy() && eval.AdaptiveAdjustment != nil {
+				adj := eval.AdaptiveAdjustment
+				span.SetAttributes(
+					attribute.Float64("governance.adaptive_final_adjustment", adj.FinalAdjustment),
+					attribute.Float64("governance.adaptive_failure_rate", adj.FailureRate),
+					attribute.Float64("governance.adaptive_confidence", adj.Confidence),
+					attribute.Int64("governance.adaptive_sample_size", int64(adj.SampleSize)),
+					attribute.String("governance.adaptive_granularity", adj.Granularity),
+				)
+				break
+			}
+		}
+	}
+
 	return result, nil
 }
 

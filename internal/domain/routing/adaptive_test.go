@@ -1,6 +1,7 @@
 package routing
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -277,4 +278,59 @@ func TestExtractCategory_EmptyString(t *testing.T) {
 
 func TestExtractCategory_MultipleSlashes(t *testing.T) {
 	assert.Equal(t, "tool", ExtractCategory("tool/shell/timeout"))
+}
+
+// --- JSON roundtrip tests ---
+
+func TestStrategyEvaluation_JSONRoundtrip_WithAdaptive(t *testing.T) {
+	eval := StrategyEvaluation{
+		Strategy:      StrategyDirect,
+		Score:         0.72,
+		AdjustedScore: 0.6731,
+		FactorScores:  map[string]float64{"risk_level": 0.9},
+		Overridden:    false,
+		Reason:        "test",
+		AdaptiveAdjustment: &AdaptiveAdjustment{
+			RawAdjustment:   -0.046875,
+			Confidence:      1.0,
+			FinalAdjustment: -0.046875,
+			FailureRate:     0.45,
+			SampleSize:      40,
+			Granularity:     "strategy×role×category",
+			Window:          "48h",
+		},
+	}
+
+	data, err := json.Marshal(eval)
+	require.NoError(t, err)
+
+	var decoded StrategyEvaluation
+	require.NoError(t, json.Unmarshal(data, &decoded))
+
+	assert.Equal(t, eval.Score, decoded.Score)
+	assert.Equal(t, eval.AdjustedScore, decoded.AdjustedScore)
+	require.NotNil(t, decoded.AdaptiveAdjustment)
+	assert.Equal(t, eval.AdaptiveAdjustment.Granularity, decoded.AdaptiveAdjustment.Granularity)
+	assert.Equal(t, eval.AdaptiveAdjustment.SampleSize, decoded.AdaptiveAdjustment.SampleSize)
+	assert.InDelta(t, eval.AdaptiveAdjustment.FinalAdjustment, decoded.AdaptiveAdjustment.FinalAdjustment, 0.0001)
+}
+
+func TestStrategyEvaluation_JSONRoundtrip_WithoutAdaptive(t *testing.T) {
+	eval := StrategyEvaluation{
+		Strategy:      StrategyDirect,
+		Score:         0.72,
+		AdjustedScore: 0.72,
+		FactorScores:  map[string]float64{"risk_level": 0.9},
+	}
+
+	data, err := json.Marshal(eval)
+	require.NoError(t, err)
+
+	// AdaptiveAdjustment should be omitted from JSON (omitempty)
+	assert.NotContains(t, string(data), "adaptive_adjustment")
+
+	var decoded StrategyEvaluation
+	require.NoError(t, json.Unmarshal(data, &decoded))
+	assert.Nil(t, decoded.AdaptiveAdjustment)
+	assert.Equal(t, eval.AdjustedScore, decoded.AdjustedScore)
 }

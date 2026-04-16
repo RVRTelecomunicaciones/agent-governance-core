@@ -239,6 +239,92 @@ func TestTracedGovernanceService_RouteTask_Attributes(t *testing.T) {
 	v, ok = findAttr(span.Attributes, "governance.outcome")
 	assert.True(t, ok)
 	assert.Equal(t, "routed", v.AsString())
+
+	// Adaptive attribute should be false (no adaptive adjustments in this decision)
+	v, ok = findAttr(span.Attributes, "governance.adaptive_applied")
+	assert.True(t, ok)
+	assert.False(t, v.AsBool())
+
+	// No detailed adaptive attributes when adaptive is not applied
+	_, ok = findAttr(span.Attributes, "governance.adaptive_final_adjustment")
+	assert.False(t, ok)
+}
+
+func TestTracedGovernanceService_RouteTask_AdaptiveAttributes(t *testing.T) {
+	exporter, tracer := setupTracer(t)
+	now := mustTimestamp(t)
+
+	rd, err := routing.NewRoutingDecision(
+		"rd-002", "task-002",
+		[]routing.StrategyEvaluation{
+			{
+				Strategy:      routing.StrategyDirect,
+				Score:         0.80,
+				AdjustedScore: 0.75,
+				FactorScores:  map[string]float64{"risk": 0.8},
+				Overridden:    false,
+				Reason:        "adaptive adjusted",
+				AdaptiveAdjustment: &routing.AdaptiveAdjustment{
+					RawAdjustment:   -0.05,
+					Confidence:      1.0,
+					FinalAdjustment: -0.05,
+					FailureRate:     0.45,
+					SampleSize:      40,
+					Granularity:     "strategy",
+					Window:          "48h",
+				},
+			},
+		},
+		routing.StrategyDirect,
+		routing.RoleImplementer,
+		"adaptive routing",
+		nil,
+		now,
+	)
+	require.NoError(t, err)
+
+	mock := &mockGovernanceService{
+		routeTaskFn: func(_ context.Context, _ shared.TaskID) (*routing.RoutingDecision, error) {
+			return rd, nil
+		},
+	}
+
+	traced := NewTracedGovernanceService(mock, tracer)
+	result, err := traced.RouteTask(context.Background(), "task-002")
+
+	require.NoError(t, err)
+	assert.Equal(t, rd, result)
+
+	spans := exporter.GetSpans()
+	require.Len(t, spans, 1)
+
+	span := spans[0]
+
+	// Adaptive applied should be true
+	v, ok := findAttr(span.Attributes, "governance.adaptive_applied")
+	assert.True(t, ok)
+	assert.True(t, v.AsBool())
+
+	// Detailed adaptive attributes for the selected strategy
+	v, ok = findAttr(span.Attributes, "governance.adaptive_final_adjustment")
+	assert.True(t, ok)
+	assert.InDelta(t, -0.05, v.AsFloat64(), 0.0001)
+
+	v, ok = findAttr(span.Attributes, "governance.adaptive_failure_rate")
+	assert.True(t, ok)
+	assert.InDelta(t, 0.45, v.AsFloat64(), 0.0001)
+
+	v, ok = findAttr(span.Attributes, "governance.adaptive_confidence")
+	assert.True(t, ok)
+	assert.InDelta(t, 1.0, v.AsFloat64(), 0.0001)
+
+	v, ok = findAttr(span.Attributes, "governance.adaptive_sample_size")
+	assert.True(t, ok)
+	assert.Equal(t, int64(40), v.AsInt64())
+
+	v, ok = findAttr(span.Attributes, "governance.adaptive_granularity")
+	assert.True(t, ok)
+	assert.Equal(t, "strategy", v.AsString())
 }
 
 func TestTracedGovernanceService_EvaluatePolicy_Attributes(t *testing.T) {
