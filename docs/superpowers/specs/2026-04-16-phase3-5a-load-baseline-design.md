@@ -152,7 +152,7 @@ Each flow is a dedicated k6 script targeting the HTTP API (`/api/v1/...`) via th
 - `test/load/docker-compose.yaml` + `pg-tuning.conf`
 - `test/load/scripts/{happy_path,dlq_flow,breaker_flow}.js`
 - `test/load/runner.sh`
-- `test/load/results/` populated with 9 JSON outputs (3 flows × 3 intensities)
+- `test/load/results/` populated with 9 JSON outputs (3 flows × 3 intensities); re-runs only if numbers were suspicious
 - `docs/observability/baseline-v0.6.0.md` — human-readable findings
 
 ### baseline-v0.6.0.md structure
@@ -199,7 +199,9 @@ Ends with a **"known limits" section**: single paragraph per flow stating the cu
 | D4 | Stub memory-engine + notifier | Measure governance-core itself, not network paths |
 | D5 | Discovery, not validation | No SLOs yet; thresholds would bias results |
 | D6 | HTTP API (not SDK) | k6 targets the wire; mirrors real client |
-| D7 | No fixes in this track | Findings → next decision; avoid scope creep |
+| D7 | No fixes in this track (general rule) | Findings → next decision; avoid scope creep |
+| D8 | Exception: minimal in-place fix if a critical issue invalidates measurement or breaks the harness | Otherwise the baseline is unusable; fix only what unblocks the run, document, move on |
+| D9 | 1 run per (flow × intensity); repeat only if numbers look suspicious or highly variable | Avoid overkill; 9 runs total instead of 18 |
 
 ---
 
@@ -210,7 +212,8 @@ Ends with a **"known limits" section**: single paragraph per flow stating the cu
 | k6 on same host as pg skews CPU numbers | Document host specs; cap k6 CPU via docker limits; note as "local-host caveat" in findings |
 | Soak run reveals non-deterministic bug | File as separate issue with repro; do NOT block baseline publication |
 | Baseline numbers too low to be useful | Valid outcome — feeds architectural decision in Phase 4 (e.g. "need pooling changes before adaptive loop") |
-| Results vary run-to-run | Each flow × intensity runs **twice**; publish min / median / max in findings |
+| Results vary run-to-run | 1 run per (flow × intensity) first; if numbers are suspicious or highly variable, repeat that specific run — not the whole matrix |
+| Critical defect breaks the harness or invalidates a run | Minimal in-place fix allowed (D8); record fix in findings so baseline has clear caveat |
 
 ---
 
