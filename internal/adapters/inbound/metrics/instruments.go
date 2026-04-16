@@ -20,6 +20,8 @@ type Instruments struct {
 	ExecutionFailures   metric.Int64Counter
 	MemoryDuration      metric.Float64Histogram
 	MemoryDegraded      metric.Int64Counter
+	CircuitBreakerTransitions metric.Int64Counter
+	CircuitBreakerTrips       metric.Int64Counter
 }
 
 // NewInstruments creates all 12 metric instruments from the given Meter.
@@ -113,6 +115,20 @@ func NewInstruments(meter metric.Meter) (*Instruments, error) {
 		return nil, err
 	}
 
+	cbTransitions, err := meter.Int64Counter("governance.circuit_breaker.transitions",
+		metric.WithDescription("Number of circuit breaker state transitions"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	cbTrips, err := meter.Int64Counter("governance.circuit_breaker.trips",
+		metric.WithDescription("Number of CLOSED→OPEN transitions by trip reason"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Instruments{
 		TasksSubmitted:      tasksSubmitted,
 		TasksCompleted:      tasksCompleted,
@@ -126,5 +142,7 @@ func NewInstruments(meter metric.Meter) (*Instruments, error) {
 		ExecutionFailures:   executionFailures,
 		MemoryDuration:      memoryDuration,
 		MemoryDegraded:      memoryDegraded,
+		CircuitBreakerTransitions: cbTransitions,
+		CircuitBreakerTrips:       cbTrips,
 	}, nil
 }
