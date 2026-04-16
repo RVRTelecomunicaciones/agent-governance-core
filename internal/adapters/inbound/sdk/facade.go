@@ -3,6 +3,7 @@ package sdk
 import (
 	"context"
 
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
@@ -112,6 +113,14 @@ func (f *GovernanceFacade) QueryAuditTrail(ctx context.Context, filter outbound.
 
 func (f *GovernanceFacade) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
 	return f.queries.ListWorkflows(ctx, filter)
+}
+
+func (f *GovernanceFacade) ListBreakers(ctx context.Context, filter resilience.BreakerFilter) ([]resilience.BreakerSnapshot, error) {
+	return f.queries.ListBreakers(ctx, filter)
+}
+
+func (f *GovernanceFacade) GetBreakerState(ctx context.Context, tool, agentRole string) (*resilience.BreakerSnapshot, error) {
+	return f.queries.GetBreakerState(ctx, tool, agentRole)
 }
 
 // --- EscalationPort methods ---

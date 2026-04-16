@@ -7,6 +7,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/russellcxl/agent-governance-core/internal/domain/task"
@@ -129,4 +130,16 @@ func (t *TracedQueryService) ListWorkflows(ctx context.Context, filter outbound.
 	span.SetAttributes(attribute.String("governance.outcome", "success"))
 
 	return result, count, nil
+}
+
+func (t *TracedQueryService) ListBreakers(ctx context.Context, filter resilience.BreakerFilter) ([]resilience.BreakerSnapshot, error) {
+	ctx, span := t.tracer.Start(ctx, "QueryService.ListBreakers")
+	defer span.End()
+	return t.next.ListBreakers(ctx, filter)
+}
+
+func (t *TracedQueryService) GetBreakerState(ctx context.Context, tool, agentRole string) (*resilience.BreakerSnapshot, error) {
+	ctx, span := t.tracer.Start(ctx, "QueryService.GetBreakerState")
+	defer span.End()
+	return t.next.GetBreakerState(ctx, tool, agentRole)
 }

@@ -23,6 +23,7 @@ import (
 	appaudit "github.com/russellcxl/agent-governance-core/internal/application/audit"
 	"github.com/russellcxl/agent-governance-core/internal/application/intake"
 	"github.com/russellcxl/agent-governance-core/internal/application/policyeval"
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/application/routing"
 	"github.com/russellcxl/agent-governance-core/internal/application/workflowrun"
 
@@ -122,7 +123,7 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 	submitTaskSvc := intake.NewSubmitTaskService(taskRepo, &gen, clk, auditRecorder, memProvider)
 	routeTaskSvc := routing.NewRouteTaskService(taskRepo, routingRepo, wfRepo, &gen, clk, auditRecorder, memProvider, statsStore)
 	evalPolicySvc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, &gen, clk, auditRecorder)
-	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle)
+	workflowSvc := workflowrun.NewWorkflowRunService(wfRepo, leaseRepo, taskRepo, routingRepo, policyRepo, approvalRepo, &gen, clk, auditRecorder, notifier, wfLifecycle, nil)
 	approvalSvc := approvals.NewApprovalService(approvalRepo, wfRepo, leaseRepo, &gen, clk, auditRecorder, notifier, approvalLifecycle)
 	queryAuditSvc := appaudit.NewQueryAuditService(auditRepo)
 	escalationSvc := escalation.NewEscalationService(escalationRepo, &gen, clk, auditRecorder)
@@ -139,9 +140,10 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 		workflow: workflowSvc,
 	}
 	queryAdapter := &queryServiceAdapter{
-		taskRepo:    taskRepo,
-		workflowSvc: workflowSvc,
-		auditQuery:  queryAuditSvc,
+		taskRepo:        taskRepo,
+		workflowSvc:     workflowSvc,
+		auditQuery:      queryAuditSvc,
+		breakerRegistry: nil, // T6 will wire the real registry
 	}
 
 	// Inbound port interfaces — wrapped with decorators when OTel is enabled.
@@ -214,9 +216,10 @@ var _ inbound.GovernanceService = (*governanceServiceAdapter)(nil)
 
 // queryServiceAdapter implements inbound.QueryService.
 type queryServiceAdapter struct {
-	taskRepo    outbound.TaskRepository
-	workflowSvc *workflowrun.WorkflowRunService
-	auditQuery  *appaudit.QueryAuditService
+	taskRepo        outbound.TaskRepository
+	workflowSvc     *workflowrun.WorkflowRunService
+	auditQuery      *appaudit.QueryAuditService
+	breakerRegistry *resilience.CircuitBreakerRegistry
 }
 
 func (q *queryServiceAdapter) GetTask(ctx context.Context, id shared.TaskID) (*task.Task, error) {
@@ -237,6 +240,20 @@ func (q *queryServiceAdapter) QueryAuditTrail(ctx context.Context, filter outbou
 
 func (q *queryServiceAdapter) ListWorkflows(ctx context.Context, filter outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
 	return q.workflowSvc.ListWorkflows(ctx, filter)
+}
+
+func (q *queryServiceAdapter) ListBreakers(ctx context.Context, filter resilience.BreakerFilter) ([]resilience.BreakerSnapshot, error) {
+	if q.breakerRegistry == nil {
+		return nil, nil
+	}
+	return q.breakerRegistry.List(filter), nil
+}
+
+func (q *queryServiceAdapter) GetBreakerState(ctx context.Context, tool, agentRole string) (*resilience.BreakerSnapshot, error) {
+	if q.breakerRegistry == nil {
+		return nil, nil
+	}
+	return q.breakerRegistry.Get(tool, agentRole), nil
 }
 
 // Compile-time check.

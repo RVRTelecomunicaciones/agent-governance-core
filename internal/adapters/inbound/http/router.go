@@ -72,5 +72,8 @@ func (s *Server) routes() {
 
 		// Audit
 		r.Get("/audit", s.handleQueryAuditTrail)
+
+		// Circuit breakers
+		r.Get("/breakers", s.handleListBreakers)
 	})
 }

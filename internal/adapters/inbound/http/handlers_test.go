@@ -10,6 +10,7 @@ import (
 	"time"
 
 	adapter "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
+	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
 	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
 	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
 	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
@@ -150,6 +151,14 @@ func (m *mockQueryService) QueryAuditTrail(ctx context.Context, filter outbound.
 
 func (m *mockQueryService) ListWorkflows(_ context.Context, _ outbound.WorkflowListFilter) ([]*workflow.WorkflowRun, int, error) {
 	return nil, 0, nil
+}
+
+func (m *mockQueryService) ListBreakers(_ context.Context, _ resilience.BreakerFilter) ([]resilience.BreakerSnapshot, error) {
+	return nil, nil
+}
+
+func (m *mockQueryService) GetBreakerState(_ context.Context, _, _ string) (*resilience.BreakerSnapshot, error) {
+	return nil, nil
 }
 
 type mockEscalationService struct {
