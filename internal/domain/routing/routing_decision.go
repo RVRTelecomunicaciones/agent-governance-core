@@ -54,11 +54,13 @@ func NewRoutingDecision(
 			fs[k] = v
 		}
 		evals[i] = StrategyEvaluation{
-			Strategy:     e.Strategy,
-			Score:        e.Score,
-			FactorScores: fs,
-			Overridden:   e.Overridden,
-			Reason:       e.Reason,
+			Strategy:           e.Strategy,
+			Score:              e.Score,
+			AdjustedScore:      e.AdjustedScore,
+			FactorScores:       fs,
+			Overridden:         e.Overridden,
+			Reason:             e.Reason,
+			AdaptiveAdjustment: e.AdaptiveAdjustment,
 		}
 	}
 

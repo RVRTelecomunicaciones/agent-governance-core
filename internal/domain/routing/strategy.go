@@ -66,17 +66,19 @@ func (ar AgentRole) String() string { return string(ar) }
 
 // StrategyEvaluation captures the scoring result for a single strategy.
 type StrategyEvaluation struct {
-	Strategy     RoutingStrategy
-	Score        float64
-	FactorScores map[string]float64
-	Overridden   bool
-	Reason       string
+	Strategy           RoutingStrategy     `json:"strategy"`
+	Score              float64             `json:"score"`
+	AdjustedScore      float64             `json:"adjusted_score"`
+	FactorScores       map[string]float64  `json:"factor_scores"`
+	Overridden         bool                `json:"overridden"`
+	Reason             string              `json:"reason"`
+	AdaptiveAdjustment *AdaptiveAdjustment `json:"adaptive_adjustment,omitempty"`
 }
 
 // --- RoutingConstraint VO ---
 
 // RoutingConstraint represents a constraint applied to a routing decision.
 type RoutingConstraint struct {
-	Type  string
-	Value string
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
