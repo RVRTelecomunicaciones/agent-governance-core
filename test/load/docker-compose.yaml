@@ -1,0 +1,47 @@
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: load-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: governance
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./pg/postgresql.tuned.conf:/etc/postgresql/postgresql.conf:ro
+      - ../../migrations/postgres:/migrations:ro
+      - ./pg/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    command:
+      - "postgres"
+      - "-c"
+      - "config_file=/etc/postgresql/postgresql.conf"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d governance"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    cpus: "2.0"
+    mem_limit: 1536m
+
+  governance:
+    image: agent-governance-core:loadtest
+    container_name: load-governance
+    depends_on:
+      pg:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      DB_HOST: pg
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: governance
+      DB_SSLMODE: disable
+      LOG_LEVEL: info
+      OTEL_ENABLED: "false"
+      ADAPTIVE_ROUTING_ENABLED: "false"
+    ports:
+      - "8081:8080"
+    cpus: "2.0"
+    mem_limit: 1024m
