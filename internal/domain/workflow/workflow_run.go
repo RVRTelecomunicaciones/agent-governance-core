@@ -89,6 +89,11 @@ func (w *WorkflowRun) Fail(reason string, actor shared.ActorID, now shared.Times
 	return w.transitionTo(StatusFailed, reason, actor, now)
 }
 
+// Quarantine transitions from running → quarantined (budget exhausted).
+func (w *WorkflowRun) Quarantine(reason string, actor shared.ActorID, now shared.Timestamp) error {
+	return w.transitionTo(StatusQuarantined, reason, actor, now)
+}
+
 // ReconstructWorkflowRun creates a WorkflowRun from persisted data (repository hydration).
 func ReconstructWorkflowRun(
 	id shared.WorkflowRunID,

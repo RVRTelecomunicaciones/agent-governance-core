@@ -14,12 +14,14 @@ const (
 	StatusCompleted        WorkflowStatus = "completed"
 	StatusFailed           WorkflowStatus = "failed"
 	StatusKilled           WorkflowStatus = "killed"
+	StatusQuarantined      WorkflowStatus = "quarantined"
 )
 
 var terminalStates = map[WorkflowStatus]bool{
-	StatusCompleted: true,
-	StatusFailed:    true,
-	StatusKilled:    true,
+	StatusCompleted:   true,
+	StatusFailed:      true,
+	StatusKilled:      true,
+	StatusQuarantined: true,
 }
 
 // IsTerminal returns true if the status is a terminal state (completed, failed, killed).
@@ -48,10 +50,11 @@ var transitionTable = map[WorkflowStatus]map[WorkflowStatus]bool{
 		StatusRunning: true,
 	},
 	StatusRunning: {
-		StatusCompleted: true,
-		StatusFailed:    true,
-		StatusPaused:    true,
-		StatusKilled:    true,
+		StatusCompleted:   true,
+		StatusFailed:      true,
+		StatusPaused:      true,
+		StatusKilled:      true,
+		StatusQuarantined: true,
 	},
 	StatusPaused: {
 		StatusRunning: true,

@@ -52,7 +52,7 @@ func TestNewWorkflowRun_StartsInCreated(t *testing.T) {
 }
 
 func TestIsTerminal(t *testing.T) {
-	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled}
+	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled, StatusQuarantined}
 	for _, s := range terminal {
 		assert.True(t, s.IsTerminal(), "expected %s to be terminal", s)
 	}
@@ -83,6 +83,7 @@ func TestValidTransitions(t *testing.T) {
 		{StatusRunning, StatusFailed},
 		{StatusRunning, StatusPaused},
 		{StatusRunning, StatusKilled},
+		{StatusRunning, StatusQuarantined},
 		{StatusPaused, StatusRunning},
 		{StatusPaused, StatusKilled},
 	}
@@ -120,6 +121,8 @@ func TestInvalidTransitions(t *testing.T) {
 		{StatusFailed, StatusKilled},
 		{StatusKilled, StatusRunning},
 		{StatusKilled, StatusCreated},
+		{StatusQuarantined, StatusRunning},
+		{StatusQuarantined, StatusCreated},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.from)+"→"+string(tt.to), func(t *testing.T) {
@@ -185,7 +188,7 @@ func TestKill_FromEveryNonTerminalState(t *testing.T) {
 }
 
 func TestKill_FromTerminalState_Fails(t *testing.T) {
-	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled}
+	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled, StatusQuarantined}
 	for _, status := range terminal {
 		t.Run("kill_from_"+string(status), func(t *testing.T) {
 			wf := ReconstructWorkflowRun(
@@ -201,11 +204,11 @@ func TestKill_FromTerminalState_Fails(t *testing.T) {
 }
 
 func TestNoTransitionFromTerminalStates(t *testing.T) {
-	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled}
+	terminal := []WorkflowStatus{StatusCompleted, StatusFailed, StatusKilled, StatusQuarantined}
 	targets := []WorkflowStatus{
 		StatusCreated, StatusRouted, StatusPolicyChecked,
 		StatusRunning, StatusAwaitingApproval, StatusApproved,
-		StatusPaused, StatusCompleted, StatusFailed, StatusKilled,
+		StatusPaused, StatusCompleted, StatusFailed, StatusKilled, StatusQuarantined,
 	}
 	for _, from := range terminal {
 		for _, to := range targets {
@@ -364,4 +367,71 @@ func TestReconstructWorkflowRun(t *testing.T) {
 	assert.Equal(t, &pdID, wf.PolicyDecisionID)
 	assert.Equal(t, 2, wf.CurrentStepIndex)
 	assert.Len(t, wf.Transitions, 1)
+}
+
+func TestWorkflowRun_Quarantine_FromRunning(t *testing.T) {
+	wf := ReconstructWorkflowRun(
+		testWorkflowRunID(), testTaskID(), StatusRunning,
+		nil, nil, 0, nil, testTimestamp(0), testTimestamp(0),
+	)
+	err := wf.Quarantine("budget exhausted", testActor(), testTimestamp(1))
+	require.NoError(t, err)
+	assert.Equal(t, StatusQuarantined, wf.Status)
+	require.Len(t, wf.Transitions, 1)
+	assert.Equal(t, StatusRunning, wf.Transitions[0].From)
+	assert.Equal(t, StatusQuarantined, wf.Transitions[0].To)
+	assert.Equal(t, "budget exhausted", wf.Transitions[0].Reason)
+}
+
+func TestWorkflowRun_Quarantined_IsTerminal(t *testing.T) {
+	assert.True(t, StatusQuarantined.IsTerminal())
+}
+
+func TestWorkflowRun_NoTransitionFromQuarantined(t *testing.T) {
+	targets := []WorkflowStatus{
+		StatusCreated, StatusRouted, StatusPolicyChecked,
+		StatusRunning, StatusAwaitingApproval, StatusApproved,
+		StatusPaused, StatusCompleted, StatusFailed, StatusKilled, StatusQuarantined,
+	}
+	for _, to := range targets {
+		t.Run("quarantined→"+string(to), func(t *testing.T) {
+			wf := ReconstructWorkflowRun(
+				testWorkflowRunID(), testTaskID(), StatusQuarantined,
+				nil, nil, 0, nil, testTimestamp(0), testTimestamp(0),
+			)
+			err := wf.TransitionTo(to, "attempt", testActor(), testTimestamp(1))
+			require.Error(t, err)
+			assert.ErrorIs(t, err, ErrTerminalState)
+			assert.Equal(t, StatusQuarantined, wf.Status)
+		})
+	}
+}
+
+func TestWorkflowRun_KillFromQuarantined_Fails(t *testing.T) {
+	wf := ReconstructWorkflowRun(
+		testWorkflowRunID(), testTaskID(), StatusQuarantined,
+		nil, nil, 0, nil, testTimestamp(0), testTimestamp(0),
+	)
+	err := wf.Kill("kill attempt", testActor(), testTimestamp(1))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrTerminalState)
+	assert.Equal(t, StatusQuarantined, wf.Status)
+}
+
+func TestWorkflowRun_Quarantine_FromNonRunning_Fails(t *testing.T) {
+	nonRunning := []WorkflowStatus{
+		StatusCreated, StatusRouted, StatusPolicyChecked,
+		StatusAwaitingApproval, StatusApproved, StatusPaused,
+	}
+	for _, status := range nonRunning {
+		t.Run("quarantine_from_"+string(status), func(t *testing.T) {
+			wf := ReconstructWorkflowRun(
+				testWorkflowRunID(), testTaskID(), status,
+				nil, nil, 0, nil, testTimestamp(0), testTimestamp(0),
+			)
+			err := wf.Quarantine("budget exhausted", testActor(), testTimestamp(1))
+			require.Error(t, err)
+			assert.Equal(t, status, wf.Status)
+		})
+	}
 }
