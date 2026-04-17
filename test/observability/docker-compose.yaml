@@ -1,0 +1,97 @@
+# Local observability stack for governance-core.
+# NOT FOR STAGING / PROD — anonymous Grafana admin, no TLS, open ports on host.
+
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: obs-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: governance
+    ports:
+      - "5434:5432"
+    volumes:
+      - ../../migrations/postgres:/migrations:ro
+      - ../load/pg/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d governance"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    cpus: "2.0"
+    mem_limit: 1024m
+
+  governance:
+    image: agent-governance-core:loadtest
+    container_name: obs-governance
+    depends_on:
+      pg:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    environment:
+      PORT: "8080"
+      DB_HOST: pg
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: governance
+      DB_SSLMODE: disable
+      LOG_LEVEL: info
+      OTEL_ENABLED: "true"
+      ADAPTIVE_ROUTING_ENABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: agent-governance-core
+      OTEL_METRIC_EXPORT_INTERVAL: "5000"
+    ports:
+      - "8082:8080"
+    cpus: "2.0"
+    mem_limit: 1024m
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    container_name: obs-otel-collector
+    command: ["--config=/etc/otel-collector/config.yaml"]
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otel-collector/config.yaml:ro
+    ports:
+      - "4318:4318"   # OTLP HTTP in
+      - "8889:8889"   # prom exposition out
+    cpus: "1.0"
+    mem_limit: 512m
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: obs-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=1d"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    cpus: "1.0"
+    mem_limit: 512m
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: obs-grafana
+    depends_on:
+      - prometheus
+    environment:
+      # LOCAL-ONLY — NOT APT FOR SHARED NETWORKS OR STAGING/PROD
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    cpus: "1.0"
+    mem_limit: 512m
