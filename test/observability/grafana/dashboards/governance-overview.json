@@ -1,0 +1,650 @@
+{
+  "uid": "governance-overview",
+  "title": "Governance Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "timezone": "browser",
+  "tags": ["governance", "agent-governance-core"],
+  "annotations": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "task_type",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prom-governance" },
+        "query": { "query": "label_values(governance_tasks_submitted_total, task_type)", "refId": "task_type" },
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "tool_name",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prom-governance" },
+        "query": { "query": "label_values(governance_circuit_breaker_trips_total, tool_name)", "refId": "tool_name" },
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Tasks submitted rate",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (task_type) (rate(governance_tasks_submitted_total[1m]))",
+          "legendFormat": "{{task_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Tasks completed rate",
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(governance_tasks_completed_total[1m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Submission success % (30d)",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "SLO",
+          "expr": "100 * sum(rate(governance_tasks_submitted_total[30d])) / (sum(rate(governance_tasks_submitted_total[30d])) + sum(rate(governance_execution_failures_total{failure_stage=\"intake\"}[30d])))",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 99 },
+              { "color": "green", "value": 99.9 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "alert": {
+        "name": "governance-task-submit-error-rate-critical",
+        "message": "Task submission error rate exceeds 1% — CRITICAL",
+        "conditions": [
+          {
+            "evaluator": { "params": [99], "type": "lt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["SLO", "15m", "now"] },
+            "reducer": { "params": [], "type": "avg" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "15m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "critical",
+          "description": "governance-task-submit-error-rate-critical: 100 * sum(rate(governance_execution_failures_total{failure_stage=\"intake\"}[15m])) / sum(rate(governance_tasks_submitted_total[15m])) > 1"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total tasks (today)",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(governance_tasks_submitted_total[24h]))",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Routing duration P50/P95/P99",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "P50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "P50"
+        },
+        {
+          "refId": "P95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "P95"
+        },
+        {
+          "refId": "P99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "ms" },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-happy-path-p99-slo-burn",
+        "message": "Routing P99 latency exceeds 60ms SLO",
+        "conditions": [
+          {
+            "evaluator": { "params": [60], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["P99", "5m", "now"] },
+            "reducer": { "params": [], "type": "avg" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "warning",
+          "description": "governance-happy-path-p99-slo-burn: routing P99 > 60ms for 5m"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Policy outcomes rate",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(governance_policy_outcomes_total[1m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Policy denial % (5m)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(rate(governance_policy_outcomes_total{outcome=\"deny\"}[5m])) / sum(rate(governance_policy_outcomes_total[5m]))",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 20 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Workflow state distribution",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (to_state) (rate(governance_workflow_transitions_total[5m]))",
+          "legendFormat": "{{to_state}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-quarantine-growth",
+        "message": "Quarantine growth rate exceeds 0.1/min — experimental threshold",
+        "conditions": [
+          {
+            "evaluator": { "params": [0.1], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["A", "15m", "now"] },
+            "reducer": { "params": [], "type": "avg" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "15m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "warning",
+          "description": "experimental — threshold tuned from real traffic in follow-up. governance-quarantine-growth: sum(rate(governance_workflow_transitions_total{to_state=\"quarantined\"}[15m])) > 0.1"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Execution attempts P50/P95/P99",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "P50",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(governance_execution_attempts_bucket[5m])))",
+          "legendFormat": "P50"
+        },
+        {
+          "refId": "P95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(governance_execution_attempts_bucket[5m])))",
+          "legendFormat": "P95"
+        },
+        {
+          "refId": "P99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(governance_execution_attempts_bucket[5m])))",
+          "legendFormat": "P99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-workflow-p99-slo-burn",
+        "message": "Workflow execution P99 exceeds 200ms SLO",
+        "conditions": [
+          {
+            "evaluator": { "params": [200], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["P99", "5m", "now"] },
+            "reducer": { "params": [], "type": "avg" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "warning",
+          "description": "governance-workflow-p99-slo-burn: workflow duration P99 > 200ms for 5m"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Execution failures by stage",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (failure_stage) (rate(governance_execution_failures_total[1m]))",
+          "legendFormat": "{{failure_stage}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-task-submit-error-rate-warning",
+        "message": "Task submission error rate exceeds 0.1% warning threshold",
+        "conditions": [
+          {
+            "evaluator": { "params": [0.1], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["A", "15m", "now"] },
+            "reducer": { "params": [], "type": "avg" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "15m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "warning",
+          "description": "governance-task-submit-error-rate-warning: 100 * sum(rate(governance_execution_failures_total{failure_stage=\"intake\"}[15m])) / sum(rate(governance_tasks_submitted_total[15m])) > 0.1"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Circuit breaker open states",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tool_name, agent_role) (governance_circuit_breaker_transitions_total{to_state=\"open\"}) - sum by (tool_name, agent_role) (governance_circuit_breaker_transitions_total{to_state=\"closed\"})",
+          "legendFormat": "",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true }
+          }
+        }
+      ],
+      "options": {
+        "footer": { "show": false },
+        "showHeader": true
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Breaker trips rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (reason) (rate(governance_circuit_breaker_trips_total[5m]))",
+          "legendFormat": "{{reason}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-breaker-storm",
+        "message": "Circuit breaker trip rate exceeds 5/min",
+        "conditions": [
+          {
+            "evaluator": { "params": [5], "type": "gt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["A", "5m", "now"] },
+            "reducer": { "params": [], "type": "sum" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "2m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "no_data",
+        "notifications": [],
+        "annotations": {
+          "severity": "warning",
+          "description": "governance-breaker-storm: sum(rate(governance_circuit_breaker_trips_total[5m])) > 5"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Collector up / scrape latency",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "UP",
+          "expr": "up{job=\"otel-collector\"}",
+          "legendFormat": "collector up"
+        },
+        {
+          "refId": "LAT",
+          "expr": "scrape_duration_seconds{job=\"otel-collector\"}",
+          "legendFormat": "scrape latency"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "collector up" },
+            "properties": [
+              { "id": "unit", "value": "short" },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "green", "value": 1 }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "bottom" }
+      },
+      "alert": {
+        "name": "governance-collector-down",
+        "message": "OTel collector is down — governance metrics pipeline broken",
+        "conditions": [
+          {
+            "evaluator": { "params": [1], "type": "lt" },
+            "operator": { "type": "and" },
+            "query": { "params": ["UP", "2m", "now"] },
+            "reducer": { "params": [], "type": "last" },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "2m",
+        "frequency": "1m",
+        "handler": 1,
+        "noDataState": "alerting",
+        "notifications": [],
+        "annotations": {
+          "severity": "critical",
+          "description": "governance-collector-down: up{job=\"otel-collector\"} == 0 for 2m"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Governance OTel heartbeat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": { "type": "prometheus", "uid": "prom-governance" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time() - max(timestamp(governance_tasks_submitted_total))",
+          "legendFormat": ""
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 60 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      }
+    }
+  ],
+  "links": [],
+  "fiscalYearStartMonth": 0,
+  "liveNow": false
+}
