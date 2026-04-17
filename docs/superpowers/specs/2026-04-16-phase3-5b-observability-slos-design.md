@@ -186,18 +186,19 @@ Single dashboard, 5 rows, 10–14 panels. Target: fits on a 1440-px screen witho
 
 Alerts are **defined in the dashboard JSON** (Grafana unified alerting). Each panel with a rule shows it inline. On SLO burn, alert goes to the Grafana notification channel `none-configured` (documented: wire up per-env later). Alerts are functional — they fire — even without a notification sink.
 
-### Alert list
+### Alert list (7 rules)
 
 | Alert | Condition | Severity | Rationale |
 |-------|-----------|----------|-----------|
 | `governance-happy-path-p99-slo-burn` | happy-path P99 > 60 ms for > 5 min | warning | Fast burn on latency SLO |
 | `governance-workflow-p99-slo-burn` | workflow_duration_ms P99 > 200 ms for > 5 min | warning | End-to-end latency SLO |
-| `governance-task-submit-error-rate` | submit error rate > 0.1 % over 15 min | critical | Entry-point failure |
+| `governance-task-submit-error-rate-warning` | submit error rate > 0.1 % over 15 min | warning | Early signal — entry-point degradation |
+| `governance-task-submit-error-rate-critical` | submit error rate > 1 % over 15 min | critical | Hard entry-point failure |
 | `governance-breaker-storm` | `rate(governance_circuit_breaker_trips_total[5m]) > 5` sustained 2 min | warning | Multiple tool/role pairs tripping |
-| `governance-quarantine-growth` | `rate(governance_workflow_transitions_total{to_state="quarantined"}[15m]) > 0.1` | warning | Quarantine rate climbing |
+| `governance-quarantine-growth` (experimental) | `rate(governance_workflow_transitions_total{to_state="quarantined"}[15m]) > 0.1` | warning | Quarantine rate climbing — threshold tuned from real traffic in follow-up |
 | `governance-collector-down` | `up{job="otel-collector"} == 0` for > 2 min | critical | Can't observe governance |
 
-Thresholds are anchored to the baseline + SLOs. **Tuneable**: when real traffic patterns emerge, these will be revisited.
+Thresholds are anchored to the baseline + SLOs. **Tuneable**: when real traffic patterns emerge, these will be revisited. The `quarantine-growth` rule is marked **experimental** — the threshold is a guess until we see real operational traffic; adjust on first false positive.
 
 ---
 
@@ -207,7 +208,7 @@ Grafana is **fully provisioned on startup** — no manual login + configure.
 
 - Datasource: Prometheus at `http://prometheus:9090` (provisioned via `grafana/provisioning/datasources/prometheus.yaml`)
 - Dashboard: single JSON at `grafana/dashboards/governance-overview.json`, loaded via `grafana/provisioning/dashboards/dashboards.yaml`
-- No auth on Grafana for local stack: `GF_AUTH_ANONYMOUS_ENABLED=true`, `GF_AUTH_ANONYMOUS_ORG_ROLE=Admin` — local only, **not** safe for shared networks.
+- No auth on Grafana for local stack: `GF_AUTH_ANONYMOUS_ENABLED=true`, `GF_AUTH_ANONYMOUS_ORG_ROLE=Admin`. **Explicitly NOT apt for shared networks, staging, or production.** The README and the docker-compose.yaml both carry a comment documenting this. Any non-local deployment must replace with proper auth (OIDC, LDAP, or provisioned admin password) as a blocking prerequisite.
 
 Prometheus is **provisioned** via `prometheus/prometheus.yml` with one scrape job: `otel-collector:8889`, 15 s interval, 1-day retention (`--storage.tsdb.retention.time=1d`).
 
@@ -294,6 +295,9 @@ Plus: extend the load runner to target port 8082 when running against the observ
 | D8 | No tracing backend in 3.5.B | Scope limit; tracing is a separate track |
 | D9 | Reuse `agent-governance-core:loadtest` Docker image from 3.5.A | No duplicate Dockerfile; one binary, two compose files |
 | D10 | Port range shifted (5434 / 8082 vs 5433 / 8081) | Can run both stacks simultaneously during debugging |
+| D11 | Submit error-rate alert split into warning (> 0.1 %) + critical (> 1 %) | Two-tier escalation: warning surfaces early degradation, critical marks hard failure |
+| D12 | Quarantine-growth alert marked **experimental** | Threshold is a guess without real ops traffic; tune on first false positive |
+| D13 | OTel overhead re-measurement is a mandatory plan step | Baseline was measured OTel-off; SLOs anchored to it must be validated against OTel-on numbers before being declared final |
 
 ---
 
@@ -306,7 +310,8 @@ Plus: extend the load runner to target port 8082 when running against the observ
 | Grafana provisioning path subtleties (dashboards UID, datasource UID) | Use static UIDs in JSON; don't rely on Grafana auto-gen. |
 | Metric name mismatch (OTel → Prometheus naming convention) | Confirmed via collector docs: dots become underscores, histograms add `_bucket / _sum / _count`. Verify during validation (Step 5 of section 9). |
 | Baseline was measured with OTel DISABLED; enabling OTel may add latency | **Critical caveat** — re-measure one happy-path smoke WITH `OTEL_ENABLED=true` to record the OTel overhead. Document the delta in `slos.md`. If overhead is large (> 10 % on P99), consider tightening collector batch interval or sampling. |
-| Grafana embedded alerts don't work if notifier not configured | Accept — alerts fire into the void and show in the UI; a follow-up track wires a notifier |
+| Grafana embedded alerts don't work if notifier not configured | Accept for v1 — alert rules fire and show state in the Grafana UI (visible via `/alerting/list`) but have no delivery channel. This is an **explicit follow-up**: a separate track wires a notifier (Slack / email / PagerDuty) per the deployment environment. Document this in `slos.md` so no one assumes alerts reach humans today. |
+| OTel overhead on latency SLOs anchored to a baseline measured with OTel DISABLED | **Mandatory plan step**: re-run one happy-path smoke with `OTEL_ENABLED=true` pointing at the observability stack and record the delta in `slos.md`. If P99 rises > 10 % vs the 3.5.A baseline, revisit the SLO thresholds **before** declaring them final. This is not optional. |
 
 ---
 
