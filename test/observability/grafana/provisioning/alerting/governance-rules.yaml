@@ -1,0 +1,268 @@
+# Unified Alerting provisioning for governance SLO rules.
+# Classic panel alerts in the dashboard JSON are visual documentation only —
+# evaluation is handled here via Grafana 11 Unified Alerting.
+#
+# Structure per rule: two data stages — A is the raw PromQL query, B is a
+# math expression that evaluates the threshold. `condition` points at B.
+# A returns numeric values; B returns 1 (fire) or 0 (ok). Grafana fires when
+# B is truthy and has been so for `for` duration.
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: governance-slos
+    folder: Governance
+    interval: 1m
+    rules:
+      - uid: gov-happy-path-p99
+        title: governance-happy-path-p99-slo-burn
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 60"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Happy-path routing P99 latency exceeds 60 ms SLO"
+          description: "The 99th-percentile routing duration has been above 60 ms for 5 minutes. Investigate routing bottlenecks or overloaded workers."
+        labels:
+          severity: warning
+
+      - uid: gov-workflow-p99
+        title: governance-workflow-p99-slo-burn
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "histogram_quantile(0.99, sum by (le) (rate(governance_workflow_duration_ms_milliseconds_bucket[5m])))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 200"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Workflow P99 latency exceeds 200 ms SLO"
+          description: "The 99th-percentile workflow duration has been above 200 ms for 5 minutes. Check for slow policy evaluations or approval gate delays."
+        labels:
+          severity: warning
+
+      - uid: gov-submit-err-warn
+        title: governance-task-submit-error-rate-warning
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "100 * sum(rate(governance_execution_failures_total{failure_stage=\"intake\"}[15m])) / sum(rate(governance_tasks_submitted_total[15m]))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 0.1"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: "Task submission error rate above 0.1%"
+          description: "Intake error rate over 15 min has exceeded 0.1%. Investigate task validation or policy denials at submission time."
+        labels:
+          severity: warning
+
+      - uid: gov-submit-err-crit
+        title: governance-task-submit-error-rate-critical
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "100 * sum(rate(governance_execution_failures_total{failure_stage=\"intake\"}[15m])) / sum(rate(governance_tasks_submitted_total[15m]))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 1"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: "Task submission error rate above 1%"
+          description: "Intake error rate over 15 min has exceeded 1%. Entry-point failure — escalate."
+        labels:
+          severity: critical
+
+      - uid: gov-breaker-storm
+        title: governance-breaker-storm
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "sum(rate(governance_circuit_breaker_trips_total[5m]))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 5"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "Circuit breaker storm detected"
+          description: "More than 5 breaker trips per minute sustained 2 min — multiple (tool, role) pairs are failing. Investigate downstream dependencies."
+        labels:
+          severity: warning
+
+      - uid: gov-quarantine-growth
+        title: governance-quarantine-growth
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "sum(rate(governance_workflow_transitions_total{to_state=\"quarantined\"}[15m]))"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A > 0.1"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: OK
+        execErrState: Error
+        for: 15m
+        annotations:
+          summary: "Quarantine growth rate above experimental threshold"
+          description: "Experimental — threshold tuned from real operational traffic in a follow-up. Adjust on first false positive."
+        labels:
+          severity: warning
+
+      - uid: gov-collector-down
+        title: governance-collector-down
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prom-governance
+            model:
+              refId: A
+              editorMode: code
+              expr: "up{job=\"otel-collector\"}"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: math
+              expression: "$A < 1"
+              intervalMs: 1000
+              maxDataPoints: 43200
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: "OTel Collector is down"
+          description: "The OTel Collector has been unreachable for 2 minutes. Governance metrics are not being collected. Verify the collector container state."
+        labels:
+          severity: critical
