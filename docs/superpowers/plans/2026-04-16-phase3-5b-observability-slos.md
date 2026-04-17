@@ -573,7 +573,7 @@ This is the biggest artifact. Dashboard has 14 panels across 5 rows and 7 embedd
 | 2 | Intake | Tasks completed rate | timeseries (stacked) | `sum by (outcome) (rate(governance_tasks_completed_total[1m]))` | req/s |
 | 3 | Intake | Submission success % (30d) | stat | `100 * sum(rate(governance_tasks_submitted_total[30d])) / (sum(rate(governance_tasks_submitted_total[30d])) + sum(rate(governance_execution_failures_total{failure_stage="intake"}[30d])))` | percent |
 | 4 | Intake | Total tasks (today) | stat | `sum(increase(governance_tasks_submitted_total[24h]))` | short |
-| 5 | Routing & Policy | Routing P50/P95/P99 | timeseries | 3 queries: `histogram_quantile(0.50, sum by (le) (rate(governance_routing_duration_ms_bucket[5m])))`, 0.95, 0.99 | ms |
+| 5 | Routing & Policy | Routing P50/P95/P99 | timeseries | 3 queries: `histogram_quantile(0.50, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))`, 0.95, 0.99 | ms |
 | 6 | Routing & Policy | Policy outcomes rate | timeseries (stacked) | `sum by (outcome) (rate(governance_policy_outcomes_total[1m]))` | req/s |
 | 7 | Routing & Policy | Policy denial % (5m) | stat | `100 * sum(rate(governance_policy_outcomes_total{outcome="deny"}[5m])) / sum(rate(governance_policy_outcomes_total[5m]))` | percent |
 | 8 | Workflow & Execution | Workflow state distribution | timeseries (stacked) | `sum by (to_state) (rate(governance_workflow_transitions_total[5m]))` | req/s |
@@ -588,8 +588,8 @@ This is the biggest artifact. Dashboard has 14 panels across 5 rows and 7 embedd
 
 | # | Panel anchor | Rule name | Expression | For | Severity |
 |---|--------------|-----------|------------|-----|----------|
-| 1 | #5 Routing P99 | `governance-happy-path-p99-slo-burn` | `histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_bucket[5m]))) > 60` | 5m | warning |
-| 2 | #9 Execution P99 | `governance-workflow-p99-slo-burn` | `histogram_quantile(0.99, sum by (le) (rate(governance_workflow_duration_ms_bucket[5m]))) > 200` | 5m | warning |
+| 1 | #5 Routing P99 | `governance-happy-path-p99-slo-burn` | `histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m]))) > 60` | 5m | warning |
+| 2 | #9 Execution P99 | `governance-workflow-p99-slo-burn` | `histogram_quantile(0.99, sum by (le) (rate(governance_workflow_duration_ms_milliseconds_bucket[5m]))) > 200` | 5m | warning |
 | 3 | #10 Execution failures | `governance-task-submit-error-rate-warning` | `100 * sum(rate(governance_execution_failures_total{failure_stage="intake"}[15m])) / sum(rate(governance_tasks_submitted_total[15m])) > 0.1` | 15m | warning |
 | 4 | #10 Execution failures | `governance-task-submit-error-rate-critical` | `100 * sum(rate(governance_execution_failures_total{failure_stage="intake"}[15m])) / sum(rate(governance_tasks_submitted_total[15m])) > 1` | 15m | critical |
 | 5 | #12 Breaker trips | `governance-breaker-storm` | `sum(rate(governance_circuit_breaker_trips_total[5m])) > 5` | 2m | warning |
@@ -677,6 +677,8 @@ Create `test/observability/grafana/dashboards/governance-overview.json` with the
 
 Grafana 11 embeds alert rules as a separate `"alert"` object inside the panel. The rule references the panel's query by `refId`.
 
+Note the histogram metric name — the OTel Collector appends `_milliseconds` when the instrument unit is `ms`. Confirmed via Bundle B bring-up inspection.
+
 ```json
 {
   "id": 5,
@@ -685,9 +687,9 @@ Grafana 11 embeds alert rules as a separate `"alert"` object inside the panel. T
   "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
   "datasource": { "type": "prometheus", "uid": "prom-governance" },
   "targets": [
-    { "refId": "P50", "expr": "histogram_quantile(0.50, sum by (le) (rate(governance_routing_duration_ms_bucket[5m])))", "legendFormat": "P50" },
-    { "refId": "P95", "expr": "histogram_quantile(0.95, sum by (le) (rate(governance_routing_duration_ms_bucket[5m])))", "legendFormat": "P95" },
-    { "refId": "P99", "expr": "histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_bucket[5m])))", "legendFormat": "P99" }
+    { "refId": "P50", "expr": "histogram_quantile(0.50, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))", "legendFormat": "P50" },
+    { "refId": "P95", "expr": "histogram_quantile(0.95, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))", "legendFormat": "P95" },
+    { "refId": "P99", "expr": "histogram_quantile(0.99, sum by (le) (rate(governance_routing_duration_ms_milliseconds_bucket[5m])))", "legendFormat": "P99" }
   ],
   "fieldConfig": {
     "defaults": { "unit": "ms" }
@@ -716,7 +718,7 @@ Grafana 11 embeds alert rules as a separate `"alert"` object inside the panel. T
 **Guidance for filling in the remaining panels:**
 - Panels 2, 6, 8, 10, 12 follow the template of Panel 1 (stacked timeseries, `legendFormat` uses the grouping label, `unit=reqps` except where noted).
 - Panels 3, 4, 7, 14 are `stat` panels. Use `"type": "stat"`, no stacking, `"reduceOptions": { "calcs": ["lastNotNull"] }`.
-- Panel 9 mirrors Panel 5 exactly — three quantile queries, but swap the metric name to `governance_execution_attempts_bucket`.
+- Panel 9 mirrors Panel 5 exactly — three quantile queries, but swap the metric name to `governance_execution_attempts_bucket`. (Note: this histogram does NOT get the `_milliseconds` suffix because its instrument unit is not `ms` — it measures attempt count.)
 - Panel 11 is a `"type": "table"` panel — single query, transform the result with a `"transformations": [{"id":"organize","options":{"excludeByName":{"Time":true}}}]`.
 - Panel 13 is a row with 2 sub-panels: a stat for `up{job="otel-collector"}` (red if 0) and a timeseries for `scrape_duration_seconds{job="otel-collector"}` in seconds.
 - Alert rules 2–7 attach to panels 9, 10, 10, 12, 12, 13 respectively — copy the Panel 5 alert structure, swap `name`, `expr`, `params[0]` (threshold), and `for` (duration).
