@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend } from 'k6/metrics';
 
-const BASE = 'http://localhost:8081';
+const BASE = __ENV.BASE_URL || 'http://localhost:8081';
 const INTENSITY = __ENV.K6_INTENSITY || 'smoke';
 
 const profiles = {
