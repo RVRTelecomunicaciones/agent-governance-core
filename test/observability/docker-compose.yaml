@@ -45,6 +45,8 @@ services:
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
       OTEL_SERVICE_NAME: agent-governance-core
       OTEL_METRIC_EXPORT_INTERVAL: "5000"
+      OTEL_TRACES_SAMPLER: parentbased_traceidratio
+      OTEL_TRACES_SAMPLER_ARG: "0.1"
     ports:
       - "8082:8080"
     cpus: "2.0"
