@@ -9,7 +9,7 @@
 
 ## OTel overhead measurement
 
-Three happy-path smoke runs (10 VU, 60 s) measured 2026-04-19 with different OTel configurations to isolate sampling overhead:
+Three happy-path smoke runs (10 VU, 60 s) measured 2026-04-18 with different OTel configurations to isolate sampling overhead:
 
 | Config | P99 (ms) | Δ vs OFF | Notes |
 |--------|----------|----------|-------|
