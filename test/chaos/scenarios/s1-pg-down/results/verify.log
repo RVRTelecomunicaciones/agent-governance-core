@@ -1,0 +1,9 @@
+S1 — pg down mid-workflow
+─────────────────────────────────
+[1] POST during pg-down → 5xx        PASS
+[2] gov container still running       PASS
+[3] no panic in logs                  PASS
+[4] POST after recovery → 2xx         PASS
+[5] row counts monotonic              PASS
+─────────────────────────────────
+RESULT: PASS

@@ -1,0 +1,8 @@
+S3 — pg pool starvation
+─────────────────────────────────
+[1] pool pressure observed (5xx or >5s) PASS
+[2] gov running, no panic                PASS
+[3] POST after recovery → 2xx            PASS
+[4] pg conn count within pool bounds     PASS (pre=2 post=9 ceiling=20)
+─────────────────────────────────
+RESULT: PASS

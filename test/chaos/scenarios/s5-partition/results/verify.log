@@ -1,0 +1,9 @@
+S5 — network partition
+─────────────────────────────────
+[1] POST during partition → 5xx       PASS
+[2] gov container running             PASS
+[3] no panic in logs                  PASS
+[4] POST after heal → 2xx             PASS
+[5] pg row counts unchanged           PASS
+─────────────────────────────────
+RESULT: PASS

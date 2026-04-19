@@ -1,0 +1,9 @@
+S2 — pg latency injection
+─────────────────────────────────
+[1] 30/30 probes succeeded          PASS
+[2] under-toxic P99 ≥ 500 ms        PASS (measured 1473 ms)
+[3] under-toxic P50 in [450,700] ms FAIL (measured 1003 ms)
+[4] post-toxic P99 < 50 ms          PASS (measured 5 ms)
+[5] no panic / crash / unexpected restart PASS
+─────────────────────────────────
+RESULT: FAIL

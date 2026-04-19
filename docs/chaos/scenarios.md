@@ -8,11 +8,11 @@ All criteria are boolean. A scenario passes only if every criterion holds.
 
 | # | Scenario | Trigger | Expected | Pass/Fail | Observations |
 |---|----------|---------|----------|-----------|--------------|
-| S1 | pg down mid-workflow | `docker stop` pg + restart | graceful 5xx, no panic, recovery on pg restart, data intact | *to be filled after execution* | *to be filled* |
-| S2 | pg latency injection | toxiproxy 500 ms ± 50 ms | 0 % errors, P99 ≥ 500 ms under toxic, baseline restored after removal | *to be filled* | *to be filled* |
-| S3 | pg pool starvation | 30 s latency toxic + 30 parallel floods | pool pressure observable, no panic, pool recovers, no leaked conns | *to be filled* | *to be filled* |
-| S4 | governance SIGKILL | `docker kill --signal=SIGKILL` + restart | restart clean, prior workflow queryable, monotonic counts; lease rows retained (observation only, not gate) | *to be filled* | *to be filled* |
-| S5 | network partition | toxiproxy proxy disabled | identical to S1 from gov view, pg counts unchanged | *to be filled* | *to be filled* |
+| S1 | pg down mid-workflow | `docker stop` pg + restart | graceful 5xx, no panic, recovery on pg restart, data intact | PASS | All 5 criteria passed; governance auto-reconnects on pg restart with no manual intervention. |
+| S2 | pg latency injection | toxiproxy 500 ms ± 50 ms | 0 % errors, P99 ≥ 500 ms under toxic, baseline restored after removal | FAIL | P99=1473 ms (criterion 2 met), but P50=1003 ms exceeds the 700 ms ceiling (criterion 3 failed); application-layer processing overhead amplifies the injected 500 ms; post-toxic P99=5 ms (baseline restored). |
+| S3 | pg pool starvation | 30 s latency toxic + 30 parallel floods | pool pressure observable, no panic, pool recovers, no leaked conns | PASS | All timeouts confirmed pool pressure; governance recovered cleanly; post-flood pg connections settled to 9 (pre=2, ceiling=20). |
+| S4 | governance SIGKILL | `docker kill --signal=SIGKILL` + restart | restart clean, prior workflow queryable, monotonic counts; lease rows retained (observation only, not gate) | PASS | All 6 pass-gates met; 1 stale execution_lease retained post-kill as expected — v0.6.0 does not reconcile leases on startup. |
+| S5 | network partition | toxiproxy proxy disabled | identical to S1 from gov view, pg counts unchanged | PASS | All 5 criteria passed; pg remained alive throughout; governance auto-reconnected after proxy re-enabled. |
 
 ## Executing
 
@@ -23,3 +23,97 @@ Each scenario's README has the exact reproduction command. The harness master RE
 - **S4 lease reconciliation**: v0.6.0 does not reconcile `execution_leases` on startup. Stale rows accumulate on every SIGKILL. Deferred to a separate track — do NOT fix in 3.5.C.
 - **No CI integration**: scenarios are operator-runnable only. Automated smoke in CI is a follow-up.
 - **Single-fault only**: v1 scope. Multi-fault composition (e.g. pg slow + notifier slow) is a future track.
+
+---
+
+## Run details
+
+### S1 — pg down mid-workflow
+
+Date measured: 2026-04-18
+
+```
+S1 — pg down mid-workflow
+─────────────────────────────────
+[1] POST during pg-down → 5xx        PASS
+[2] gov container still running       PASS
+[3] no panic in logs                  PASS
+[4] POST after recovery → 2xx         PASS
+[5] row counts monotonic              PASS
+─────────────────────────────────
+RESULT: PASS
+```
+
+### S2 — pg latency injection
+
+Date measured: 2026-04-18
+
+```
+S2 — pg latency injection
+─────────────────────────────────
+[1] 30/30 probes succeeded          PASS
+[2] under-toxic P99 ≥ 500 ms        PASS (measured 1473 ms)
+[3] under-toxic P50 in [450,700] ms FAIL (measured 1003 ms)
+[4] post-toxic P99 < 50 ms          PASS (measured 5 ms)
+[5] no panic / crash / unexpected restart PASS
+─────────────────────────────────
+RESULT: FAIL
+```
+
+**Root-cause candidate (FAIL — D7: no fix):** The 500 ms DB-proxy latency is additive with governance's full HTTP→handler→DB→response cycle. On a cold Mac Docker environment the total round-trip P50 sat at ~1000 ms, doubling the criterion ceiling of 700 ms. The verify criterion was calibrated for a lower-overhead host. No governance code change in 3.5.C — criterion range requires re-calibration for the target environment.
+
+### S3 — pg pool starvation
+
+Date measured: 2026-04-18
+
+```
+S3 — pg pool starvation
+─────────────────────────────────
+[1] pool pressure observed (5xx or >5s) PASS
+[2] gov running, no panic                PASS
+[3] POST after recovery → 2xx            PASS
+[4] pg conn count within pool bounds     PASS (pre=2 post=9 ceiling=20)
+─────────────────────────────────
+RESULT: PASS
+```
+
+### S4 — governance SIGKILL
+
+Date measured: 2026-04-18
+
+```
+S4 — governance SIGKILL
+─────────────────────────────────
+[1] pre-kill counts captured         PASS
+[2] container was killed/restarted   PASS
+[3] container running post-restart   PASS
+[4] POST after restart → 2xx         PASS
+[5] prior workflow queryable         PASS
+[6] execution_lease observation      — (see results/observations.txt)
+[7] row counts monotonic             PASS
+─────────────────────────────────
+RESULT: PASS
+```
+
+**Lease observation (observations.txt):**
+```
+pre-kill execution_leases: 1
+post-kill execution_leases: 1
+OBSERVATION: stale leases retained after SIGKILL (expected — no lease reconciliation in v0.6.0)
+```
+
+### S5 — network partition
+
+Date measured: 2026-04-18
+
+```
+S5 — network partition
+─────────────────────────────────
+[1] POST during partition → 5xx       PASS
+[2] gov container running             PASS
+[3] no panic in logs                  PASS
+[4] POST after heal → 2xx             PASS
+[5] pg row counts unchanged           PASS
+─────────────────────────────────
+RESULT: PASS
+```

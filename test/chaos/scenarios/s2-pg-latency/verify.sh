@@ -8,13 +8,13 @@ source ./common.sh
 
 R1=FAIL; R2=FAIL; R3=FAIL; R4=FAIL; R5=FAIL
 
-# compute_p99: from seconds file, print P99 in milliseconds (integer)
+# compute_p99: from seconds file, print P99 in milliseconds (integer, bash 3.2 compat)
 compute_p99() {
-  awk '{print $1 * 1000}' "$1" | sort -g | awk 'BEGIN{c=0} {a[c++]=$0} END{i=int(c*0.99); if (i>=c) i=c-1; print a[i]}'
+  awk '{print $1 * 1000}' "$1" | sort -g | awk 'BEGIN{c=0} {a[c++]=$0} END{i=int(c*0.99); if (i>=c) i=c-1; print int(a[i])}'
 }
 # compute_p50
 compute_p50() {
-  awk '{print $1 * 1000}' "$1" | sort -g | awk 'BEGIN{c=0} {a[c++]=$0} END{i=int(c*0.50); if (i>=c) i=c-1; print a[i]}'
+  awk '{print $1 * 1000}' "$1" | sort -g | awk 'BEGIN{c=0} {a[c++]=$0} END{i=int(c*0.50); if (i>=c) i=c-1; print int(a[i])}'
 }
 count_lines() { wc -l < "$1" | tr -d ' '; }
 

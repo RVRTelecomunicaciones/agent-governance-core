@@ -1,0 +1,3 @@
+pre-kill execution_leases: 1
+post-kill execution_leases: 1
+OBSERVATION: stale leases retained after SIGKILL (expected — no lease reconciliation in v0.6.0)

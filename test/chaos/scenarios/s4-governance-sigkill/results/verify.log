@@ -1,0 +1,14 @@
+S4 — governance SIGKILL
+─────────────────────────────────
+[1] pre-kill counts captured         PASS
+[2] container was killed/restarted   PASS
+[3] container running post-restart   PASS
+[4] POST after restart → 2xx         PASS
+[5] prior workflow queryable         PASS
+[6] execution_lease observation      — (see results/observations.txt)
+[7] row counts monotonic             PASS
+─────────────────────────────────
+RESULT: PASS
+pre-kill execution_leases: 1
+post-kill execution_leases: 1
+OBSERVATION: stale leases retained after SIGKILL (expected — no lease reconciliation in v0.6.0)
