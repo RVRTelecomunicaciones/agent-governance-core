@@ -6,7 +6,7 @@ cd "${HERE}/../.."
 # shellcheck source=../../common.sh
 source ./common.sh
 
-declare -A R=( [1]=FAIL [2]=FAIL [3]=FAIL [4]=FAIL [5]=FAIL )
+R1=FAIL; R2=FAIL; R3=FAIL; R4=FAIL; R5=FAIL
 
 # compute_p99: from seconds file, print P99 in milliseconds (integer)
 compute_p99() {
@@ -23,25 +23,25 @@ PT="${HERE}/results/post_toxic.txt"
 
 # Criterion 1: 0% failure (file has 30 lines — i.e., 30 successful probes)
 if [[ -f "${UT}" ]] && (( $(count_lines "${UT}") == 30 )); then
-  R[1]=PASS
+  R1=PASS
 fi
 
 # Criterion 2: P99 under toxic >= 500 ms
 if [[ -f "${UT}" ]]; then
   UT_P99=$(compute_p99 "${UT}")
-  (( UT_P99 >= 500 )) && R[2]=PASS
+  (( UT_P99 >= 500 )) && R2=PASS
 fi
 
 # Criterion 3: P50 under toxic in [450, 700] ms
 if [[ -f "${UT}" ]]; then
   UT_P50=$(compute_p50 "${UT}")
-  (( UT_P50 >= 450 && UT_P50 <= 700 )) && R[3]=PASS
+  (( UT_P50 >= 450 && UT_P50 <= 700 )) && R3=PASS
 fi
 
 # Criterion 4: P99 post-toxic < 50 ms
 if [[ -f "${PT}" ]]; then
   PT_P99=$(compute_p99 "${PT}")
-  (( PT_P99 < 50 )) && R[4]=PASS
+  (( PT_P99 < 50 )) && R4=PASS
 fi
 
 # Criterion 5: no panic, no crash, no unexpected restart
@@ -51,20 +51,20 @@ FINISHED_AT=$(docker inspect -f '{{.State.FinishedAt}}' obs-chaos-governance 2>/
 if (( RESTART_COUNT == 0 )) \
    && [[ "${FINISHED_AT}" == "0001-01-01T00:00:00Z" ]] \
    && ! panic_in_logs obs-chaos-governance 10m; then
-  R[5]=PASS
+  R5=PASS
 fi
 
 cat <<EOT
 S2 — pg latency injection
 ─────────────────────────────────
-[1] 30/30 probes succeeded          ${R[1]}
-[2] under-toxic P99 ≥ 500 ms        ${R[2]} (measured ${UT_P99:-?} ms)
-[3] under-toxic P50 in [450,700] ms ${R[3]} (measured ${UT_P50:-?} ms)
-[4] post-toxic P99 < 50 ms          ${R[4]} (measured ${PT_P99:-?} ms)
-[5] no panic / crash / unexpected restart ${R[5]}
+[1] 30/30 probes succeeded          ${R1}
+[2] under-toxic P99 ≥ 500 ms        ${R2} (measured ${UT_P99:-?} ms)
+[3] under-toxic P50 in [450,700] ms ${R3} (measured ${UT_P50:-?} ms)
+[4] post-toxic P99 < 50 ms          ${R4} (measured ${PT_P99:-?} ms)
+[5] no panic / crash / unexpected restart ${R5}
 ─────────────────────────────────
 EOT
 
-[[ ${R[1]} == PASS && ${R[2]} == PASS && ${R[3]} == PASS && ${R[4]} == PASS && ${R[5]} == PASS ]] \
+[[ ${R1} == PASS && ${R2} == PASS && ${R3} == PASS && ${R4} == PASS && ${R5} == PASS ]] \
   && { echo "RESULT: PASS"; exit 0; } \
   || { echo "RESULT: FAIL"; exit 1; }
