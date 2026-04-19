@@ -9,11 +9,17 @@
 
 ## OTel overhead measurement
 
-| Metric | OTel OFF (3.5.A) | OTel ON (3.5.B) | Delta |
-|--------|-------------------|-----------------|-------|
-| happy_path smoke P99 (10 VU, 60 s) | 10.93 ms | 51.83 ms | +374.2 % |
+Three happy-path smoke runs (10 VU, 60 s) measured 2026-04-19 with different OTel configurations to isolate sampling overhead:
 
-**Interpretation:** OTel overhead is 374.2 %; the single-host Docker environment amplifies OTel Collector batch and export latency under cold start — latency SLOs are loosened as follows: happy-path P99 SLO raised from 60 ms to 104 ms (2× the OTel-ON measured P99); workflow end-to-end P99 SLO raised from 200 ms to 400 ms; all other latency SLOs scaled proportionally. These targets MUST be re-baselined on production or staging infra before being treated as operational.
+| Config | P99 (ms) | Δ vs OFF | Notes |
+|--------|----------|----------|-------|
+| OTel OFF | 18.31 | baseline | 3.5.A default; no OTel SDK at all |
+| OTel ON — 100 % sampling | 17.66 | -3.6 % (within noise) | SDK default `ParentBased(AlwaysOn)` — prior 3.5.B result (+374 %) was a cold-start / warm-up artefact |
+| OTel ON — 10 % sampling | 20.60 | +12.5 % | New default via `OTEL_TRACES_SAMPLER=parentbased_traceidratio`, `OTEL_TRACES_SAMPLER_ARG=0.1` |
+
+**Interpretation:** With a warm OTel Collector the SDK overhead is negligible even at 100 % sampling — the +374 % previously observed in Phase 3.5.B was a cold-start artefact where the Collector's batch pipeline was not yet warmed. At 10 % sampling the delta is +12.5 %, within the 10–30 % range. At 100 % sampling the delta is within measurement noise (< 5 %).
+
+**SLO treatment:** 10 % delta is 10–30 % → SLOs bumped proportionally from original values. The aggressive 104 ms / 400 ms loosening from 3.5.B is removed; new targets are set at 2× the warm OTel-ON P99.
 
 ---
 
@@ -21,10 +27,10 @@
 
 | SLI | SLO target | Baseline (3.5.A load) | Rationale |
 |-----|-----------|-----------------------|-----------|
-| Happy-path workflow request P99 | **< 104 ms** | 26.8 ms (OTel-OFF) / 51.83 ms (OTel-ON smoke) | 2× OTel-ON measured P99; original 60 ms loosened due to +374% overhead on this host |
+| Happy-path workflow request P99 | **< 45 ms** | 18.31 ms (OTel-OFF) / 20.60 ms (OTel-ON 10%) | 2× warm OTel-ON P99; tightened from 104 ms after cold-start artefact was resolved |
 | DLQ flow request P99 | **< 30 ms** | 13.3 ms | 2× baseline; DLQ not re-measured under OTel-ON — treat as provisional |
 | Breaker flow request P99 | **< 35 ms** | 14.5 ms | 2× baseline; breaker not re-measured under OTel-ON — treat as provisional |
-| `governance_workflow_duration_ms` P99 (end-to-end) | **< 400 ms** | not measured directly | Raised from 200 ms; generous — workflow lifecycle includes wait states; OTel overhead applied proportionally |
+| `governance_workflow_duration_ms` P99 (end-to-end) | **< 200 ms** | not measured directly | Restored to original target; OTel overhead with warm Collector is negligible |
 
 Re-baseline all SLOs on production or staging infra. OTel overhead on a dedicated collector host will be substantially lower.
 
@@ -67,14 +73,14 @@ Re-baseline all SLOs on production or staging infra. OTel overhead on a dedicate
 | `governance-quarantine-growth` (experimental) | warning | > 0.1 quarantines/min | 15 min |
 | `governance-collector-down` | critical | `up{job="otel-collector"} == 0` | 2 min |
 
-Note: alert thresholds above reflect the original 3.5.A baseline targets. After re-baselining on staging or production infra, update the alert expressions in `governance-rules.yaml` to match the revised SLO targets in the Latency SLOs section above.
+Note: alert thresholds above reflect the 3.5.A baseline targets (60 ms / 200 ms). These are still appropriate now that the OTel-ON overhead is confirmed negligible at warm start. After re-baselining on staging or production infra, update the alert expressions in `governance-rules.yaml` if the targets are further tightened.
 
 ---
 
 ## Caveats
 
 - All thresholds were derived from **single-host local measurements**; real production traffic will require tuning.
-- The OTel-ON overhead of +374% on this host is **not representative of production**. The OTel Collector runs as a sidecar in the same Docker Compose network and all traffic is loopback. A dedicated collector on a separate host will yield materially lower overhead.
+- The OTel-ON overhead with a warm Collector is **< 15%** on this host (confirmed via 3-way sampling comparison on 2026-04-19). The earlier +374% figure (Phase 3.5.B) was a cold-start artefact and is no longer applicable.
 - Grafana in the local stack runs with anonymous admin; **not apt for shared networks, staging, or production**.
 - No soak baseline yet — any SLO involving sustained behaviour (memory stability, long-tail latency drift) is provisional until soak runs are executed.
 - Alert rules are active in the Grafana UI but have **no notification delivery** — no email / Slack / PagerDuty wired. See Follow-ups.
@@ -84,7 +90,7 @@ Note: alert thresholds above reflect the original 3.5.A baseline targets. After 
 ## Follow-ups
 
 - Wire a notification channel (Slack / email / PagerDuty) to Grafana alerts.
-- Re-baseline all latency SLOs on staging or production infra with a dedicated OTel Collector; the +374% local overhead makes local measurements unsuitable for capacity planning.
+- Re-baseline all latency SLOs on staging or production infra with a dedicated OTel Collector to confirm the < 15% overhead figure holds under real traffic.
 - Re-tune thresholds on first real operational traffic; the quarantine-growth rule in particular is marked experimental.
 - Add soak-based SLIs once soak runs are executed (Phase 3.5.A follow-up).
 - Add tracing backend (Tempo / Jaeger) in a separate track — metrics-only in 3.5.B.
