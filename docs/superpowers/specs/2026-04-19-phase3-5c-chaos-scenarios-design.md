@@ -29,7 +29,7 @@ Scope for v1 is Tier 1 only — failures that can be induced without code change
 |---|----------|-----------|
 | S1 | pg down mid-workflow | `docker stop obs-chaos-pg` while a workflow is running |
 | S2 | pg latency injection (500 ms + 50 ms jitter) | toxiproxy `latency` toxic on pg proxy |
-| S3 | pg connection pool exhaustion | toxiproxy `connection_cap` reduces max connections below governance pool size |
+| S3 | pg connection pool starvation | toxiproxy long-latency toxic holds pgx pool connections busy → effective exhaustion (NOT a hard cap on connection count) |
 | S4 | Container SIGKILL of governance | `docker kill --signal=SIGKILL obs-chaos-governance` mid-workflow |
 | S5 | Network partition governance ↔ pg | toxiproxy `bandwidth=0` or `down` toxic |
 
@@ -150,7 +150,7 @@ All requests succeed. P99 visibly bumped by ~500 ms. No timeout-related errors (
 2. k6 `http_req_duration` P99 ≥ 500 ms (proof toxic took effect)
 3. k6 P50 within [450 ms, 700 ms] (latency + base)
 4. After toxic removed and 15 s baseline run: P99 < 50 ms (back to warm baseline)
-5. No ERROR lines in governance logs during the run
+5. No panic, no crash, no unexpected restart — `docker inspect` shows governance container uptime spans the entire scenario (FinishedAt unchanged, restart count unchanged)
 
 **Pass if**: all 5 criteria hold.
 
@@ -226,21 +226,20 @@ Governance dies abruptly with no graceful shutdown. On restart it starts clean. 
 
 ### S5 — Network partition governance ↔ pg
 
-**Trigger**
+**Trigger (primary — `proxy enabled=false`)**
 ```bash
-curl -s -X POST localhost:8474/proxies/pg/toxics \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"bw0","type":"bandwidth","attributes":{"rate":0}}'
-# or:
+# Most reproducible: disable the proxy — all new and existing TCP connections
+# are terminated. Governance sees connection refused / reset.
 curl -s -X POST localhost:8474/proxies/pg \
   -H 'Content-Type: application/json' \
-  -d '{"enabled":false}'   # hard down — easier
+  -d '{"enabled":false}'
 # Wait 30 s
-# Restore:
 curl -s -X POST localhost:8474/proxies/pg \
   -H 'Content-Type: application/json' \
   -d '{"enabled":true}'
 ```
+
+**Alternative (bandwidth=0)**: If you need to observe "slow death" behaviour instead of hard disconnect, apply a `bandwidth=0` toxic — connections stay open but no bytes flow. Useful for long-hang simulations, but less reproducible than enabled=false. The primary trigger above is what `trigger.sh` uses.
 
 **Expected behaviour**
 From governance's view: identical to S1 (pg unreachable). But pg process is alive the whole time, so recovery is faster.

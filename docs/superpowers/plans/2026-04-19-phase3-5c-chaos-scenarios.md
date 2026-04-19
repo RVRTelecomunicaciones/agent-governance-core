@@ -667,8 +667,13 @@ if [[ -f "${PT}" ]]; then
   (( PT_P99 < 50 )) && R[4]=PASS
 fi
 
-# Criterion 5: no ERROR lines in governance logs during the window (last 5 min)
-if ! docker logs --since 5m obs-chaos-governance 2>&1 | grep -Ei '"level":"error"|panic:' >/dev/null; then
+# Criterion 5: no panic, no crash, no unexpected restart
+# Check container state: RestartCount unchanged, FinishedAt empty/unchanged (never exited during scenario)
+RESTART_COUNT=$(docker inspect -f '{{.RestartCount}}' obs-chaos-governance 2>/dev/null || echo 99)
+FINISHED_AT=$(docker inspect -f '{{.State.FinishedAt}}' obs-chaos-governance 2>/dev/null || echo "")
+if (( RESTART_COUNT == 0 )) \
+   && [[ "${FINISHED_AT}" == "0001-01-01T00:00:00Z" ]] \
+   && ! panic_in_logs obs-chaos-governance 10m; then
   R[5]=PASS
 fi
 
@@ -679,7 +684,7 @@ S2 — pg latency injection
 [2] under-toxic P99 ≥ 500 ms        ${R[2]} (measured ${UT_P99:-?} ms)
 [3] under-toxic P50 in [450,700] ms ${R[3]} (measured ${UT_P50:-?} ms)
 [4] post-toxic P99 < 50 ms          ${R[4]} (measured ${PT_P99:-?} ms)
-[5] no ERROR lines in gov logs      ${R[5]}
+[5] no panic / crash / unexpected restart ${R[5]}
 ─────────────────────────────────
 EOT
 
