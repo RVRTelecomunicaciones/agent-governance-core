@@ -156,7 +156,10 @@ All requests succeed. P99 visibly bumped by ~500 ms. No timeout-related errors (
 
 ---
 
-### S3 — pg connection pool exhaustion
+### S3 — pg connection pool starvation (via held connections)
+
+> **Framing:** toxiproxy does NOT provide a hard cap on connection count. This scenario induces **pool starvation** by holding existing connections busy with a long-latency toxic (30 s) — the governance pgx pool saturates because every checked-out connection is blocked. Not a hard cap test; an "effective exhaustion via busy connections" test. Record it as such in the runbook.
+
 
 **Trigger**
 ```bash
