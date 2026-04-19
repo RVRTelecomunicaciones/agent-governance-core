@@ -1,0 +1,59 @@
+# Local chaos harness for governance-core.
+# NOT FOR STAGING / PROD — ports bound to localhost, no TLS, OTel disabled.
+
+services:
+  pg:
+    image: postgres:16-alpine
+    container_name: obs-chaos-pg
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: governance
+    ports:
+      - "5435:5432"
+    volumes:
+      - ../../migrations/postgres:/migrations:ro
+      - ../load/pg/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d governance"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    cpus: "2.0"
+    mem_limit: 1024m
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    container_name: obs-chaos-toxiproxy
+    depends_on:
+      pg:
+        condition: service_healthy
+    command: ["-host=0.0.0.0", "-config=/config/toxiproxy.json"]
+    volumes:
+      - ./toxiproxy/config.json:/config/toxiproxy.json:ro
+    ports:
+      - "8474:8474"   # admin API (toxics add/remove)
+    cpus: "0.5"
+    mem_limit: 256m
+
+  governance:
+    image: agent-governance-core:loadtest
+    container_name: obs-chaos-governance
+    depends_on:
+      toxiproxy:
+        condition: service_started
+    environment:
+      PORT: "8080"
+      DB_HOST: toxiproxy       # <— governance goes THROUGH toxiproxy
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: governance
+      DB_SSLMODE: disable
+      LOG_LEVEL: info
+      OTEL_ENABLED: "false"
+      ADAPTIVE_ROUTING_ENABLED: "false"
+    ports:
+      - "8083:8080"
+    cpus: "2.0"
+    mem_limit: 1024m
