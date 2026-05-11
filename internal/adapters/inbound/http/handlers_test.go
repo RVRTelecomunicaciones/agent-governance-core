@@ -200,7 +200,7 @@ func newTestServer(
 	for _, o := range opts {
 		o(esc)
 	}
-	return adapter.NewServer(gov, ctrl, approvals, queries, esc)
+	return adapter.NewServer(gov, ctrl, approvals, queries, esc, nil)
 }
 
 func doRequest(srv http.Handler, method, path string, body any) *httptest.ResponseRecorder {

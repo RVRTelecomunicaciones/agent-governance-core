@@ -199,7 +199,8 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 	}
 
 	// HTTP Server + SDK Facade
-	httpServer := httpAdapter.NewServer(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
+	// pool is passed so the /ready readiness probe can ping the DB.
+	httpServer := httpAdapter.NewServer(govSvc, wfCtrl, approvalPort, queryPort, escalationPort, pool)
 	facade := sdk.NewGovernanceFacade(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
 
 	return &App{
