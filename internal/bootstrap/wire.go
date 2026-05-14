@@ -4,6 +4,7 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"log/slog"
 
@@ -200,7 +201,9 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 
 	// HTTP Server + SDK Facade
 	// pool is passed so the /ready readiness probe can ping the DB.
-	httpServer := httpAdapter.NewServer(govSvc, wfCtrl, approvalPort, queryPort, escalationPort, pool)
+	// crypto/rand.Reader + the configured logger are wired into TraceW3C
+	// middleware (ADR-0005 P2.2d).
+	httpServer := httpAdapter.NewServerWithObs(govSvc, wfCtrl, approvalPort, queryPort, escalationPort, pool, rand.Reader, logger)
 	facade := sdk.NewGovernanceFacade(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
 
 	return &App{

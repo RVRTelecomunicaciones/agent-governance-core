@@ -13,6 +13,7 @@ import (
 	"github.com/russellcxl/agent-governance-core/internal/bootstrap"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/config"
 	"github.com/russellcxl/agent-governance-core/internal/infrastructure/database"
+	obslog "github.com/russellcxl/agent-governance-core/internal/infrastructure/obs/log"
 )
 
 func main() {
@@ -27,7 +28,11 @@ func run() error {
 
 	var level slog.Level
 	_ = level.UnmarshalText([]byte(cfg.LogLevel))
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level}))
+	// Wrap the JSON handler with TraceHandler so every log line emitted within
+	// a request context automatically carries trace_id and span_id attributes
+	// (ADR-0005 P2.2d).
+	base := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: level})
+	logger := slog.New(obslog.NewTraceHandler(base))
 	slog.SetDefault(logger)
 
 	pool, err := database.NewPool(context.Background(), cfg.DB)
