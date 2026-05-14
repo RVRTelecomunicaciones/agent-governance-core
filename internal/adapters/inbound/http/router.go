@@ -1,10 +1,14 @@
 package http
 
 import (
+	"crypto/rand"
+	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimw "github.com/go-chi/chi/v5/middleware"
+	govmw "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http/middleware"
 	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
 )
 
@@ -17,6 +21,8 @@ type Server struct {
 	queries    inbound.QueryService
 	escalation inbound.EscalationPort
 	db         DBPinger
+	rand       io.Reader
+	logger     *slog.Logger
 }
 
 // NewServer creates a configured HTTP server with all routes registered.
@@ -24,6 +30,9 @@ type Server struct {
 // db is used exclusively by the /ready readiness probe and may be nil in tests
 // that do not exercise that endpoint; in that case /ready will report
 // "degraded".
+//
+// Uses crypto/rand.Reader and slog.Default() for the W3C trace middleware.
+// Tests that need deterministic IDs or log capture should use NewServerWithObs.
 func NewServer(
 	governance inbound.GovernanceService,
 	control inbound.WorkflowControl,
@@ -32,6 +41,28 @@ func NewServer(
 	escalation inbound.EscalationPort,
 	db DBPinger,
 ) *Server {
+	return NewServerWithObs(governance, control, approvals, queries, escalation, db, rand.Reader, slog.Default())
+}
+
+// NewServerWithObs is the test-friendly constructor that lets callers inject a
+// deterministic rand source and a captured *slog.Logger. Behaviour is otherwise
+// identical to NewServer (ADR-0005 P2.2d).
+func NewServerWithObs(
+	governance inbound.GovernanceService,
+	control inbound.WorkflowControl,
+	approvals inbound.ApprovalService,
+	queries inbound.QueryService,
+	escalation inbound.EscalationPort,
+	db DBPinger,
+	randSrc io.Reader,
+	logger *slog.Logger,
+) *Server {
+	if randSrc == nil {
+		randSrc = rand.Reader
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
 	s := &Server{
 		router:     chi.NewRouter(),
 		governance: governance,
@@ -40,10 +71,15 @@ func NewServer(
 		queries:    queries,
 		escalation: escalation,
 		db:         db,
+		rand:       randSrc,
+		logger:     logger,
 	}
-	s.router.Use(middleware.Logger)
-	s.router.Use(middleware.Recoverer)
-	s.router.Use(middleware.SetHeader("Content-Type", "application/json"))
+	// TraceW3C MUST be first: it injects the W3C Trace into context so all
+	// subsequent middlewares (Logger, Recoverer) and handlers see trace_id.
+	s.router.Use(govmw.TraceW3C(s.rand, s.logger))
+	s.router.Use(chimw.Logger)
+	s.router.Use(chimw.Recoverer)
+	s.router.Use(chimw.SetHeader("Content-Type", "application/json"))
 
 	s.routes()
 	return s
