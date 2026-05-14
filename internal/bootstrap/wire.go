@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.opentelemetry.io/otel"
@@ -22,6 +23,7 @@ import (
 
 	// application
 	appaudit "github.com/russellcxl/agent-governance-core/internal/application/audit"
+	"github.com/russellcxl/agent-governance-core/internal/application/govdecisions"
 	"github.com/russellcxl/agent-governance-core/internal/application/intake"
 	"github.com/russellcxl/agent-governance-core/internal/application/policyeval"
 	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
@@ -76,6 +78,8 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 	approvalRepo := persistence.NewPgApprovalRequestRepository(pool)
 	auditRepo := persistence.NewPgAuditEntryRepository(pool)
 	escalationRepo := persistence.NewPgEscalationTriggerRepository(pool)
+	phaseDecisionRepo := persistence.NewPgPhaseDecisionRepository(pool)
+	phaseApprovalRepo := persistence.NewPgPhaseApprovalRepository(pool)
 
 	// Outbound adapters
 	memProvider := memory.NewStubMemoryContextProvider(logger)
@@ -199,11 +203,21 @@ func Wire(ctx context.Context, pool *pgxpool.Pool, logger *slog.Logger, cfg conf
 		queryPort = tracing.NewTracedQueryService(queryPort, tracer)
 	}
 
+	// M-E0 orchestator-facing governance facade (default-allow + audit row).
+	phaseDecisionsSvc := govdecisions.NewDecisionsService(
+		phaseDecisionRepo,
+		phaseApprovalRepo,
+		phaseDecisionsIDAdapter{gen: gen},
+		phaseDecisionsClockAdapter{clk: clk},
+		logger,
+	)
+
 	// HTTP Server + SDK Facade
 	// pool is passed so the /ready readiness probe can ping the DB.
 	// crypto/rand.Reader + the configured logger are wired into TraceW3C
 	// middleware (ADR-0005 P2.2d).
-	httpServer := httpAdapter.NewServerWithObs(govSvc, wfCtrl, approvalPort, queryPort, escalationPort, pool, rand.Reader, logger)
+	httpServer := httpAdapter.NewServerWithObs(govSvc, wfCtrl, approvalPort, queryPort, escalationPort, pool, rand.Reader, logger).
+		WithPhaseDecisions(phaseDecisionsSvc)
 	facade := sdk.NewGovernanceFacade(govSvc, wfCtrl, approvalPort, queryPort, escalationPort)
 
 	return &App{
@@ -295,3 +309,30 @@ var _ inbound.QueryService = (*queryServiceAdapter)(nil)
 var _ inbound.WorkflowControl = (*workflowrun.WorkflowRunService)(nil)
 var _ inbound.ApprovalService = (*approvals.ApprovalService)(nil)
 var _ inbound.EscalationPort = (*escalation.EscalationService)(nil)
+
+// --- M-E0 govdecisions adapters ---
+//
+// These reuse the existing ULIDGenerator / RealClock but expose the smaller
+// interfaces govdecisions needs (which are intentionally decoupled from
+// shared.Timestamp / typed-ID return values so the facade stays portable).
+
+type phaseDecisionsIDAdapter struct {
+	gen idgen.ULIDGenerator
+}
+
+func (a phaseDecisionsIDAdapter) NewPhaseDecisionID() string {
+	// Reuse the PolicyDecisionID shape — both are immutable decision rows.
+	return a.gen.NewPolicyDecisionID().String()
+}
+
+type phaseDecisionsClockAdapter struct {
+	clk clock.RealClock
+}
+
+func (a phaseDecisionsClockAdapter) NowUTC() time.Time {
+	return a.clk.Now().Time.UTC()
+}
+
+// Compile-time checks.
+var _ govdecisions.IDGen = phaseDecisionsIDAdapter{}
+var _ govdecisions.Clock = phaseDecisionsClockAdapter{}

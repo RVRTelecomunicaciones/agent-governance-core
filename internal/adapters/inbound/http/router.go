@@ -14,15 +14,16 @@ import (
 
 // Server is the HTTP adapter that maps REST endpoints to inbound port operations.
 type Server struct {
-	router     chi.Router
-	governance inbound.GovernanceService
-	control    inbound.WorkflowControl
-	approvals  inbound.ApprovalService
-	queries    inbound.QueryService
-	escalation inbound.EscalationPort
-	db         DBPinger
-	rand       io.Reader
-	logger     *slog.Logger
+	router         chi.Router
+	governance     inbound.GovernanceService
+	control        inbound.WorkflowControl
+	approvals      inbound.ApprovalService
+	queries        inbound.QueryService
+	escalation     inbound.EscalationPort
+	phaseDecisions PhaseDecisionsService
+	db             DBPinger
+	rand           io.Reader
+	logger         *slog.Logger
 }
 
 // NewServer creates a configured HTTP server with all routes registered.
@@ -85,6 +86,15 @@ func NewServerWithObs(
 	return s
 }
 
+// WithPhaseDecisions wires the M-E0 orchestator-facing governance facade. When
+// the service is nil the /governance/v1/... endpoints reply 503. Kept as a
+// setter (not a constructor arg) to preserve existing call sites and let the
+// Sprint 3 unification consolidate the surface without another breaking churn.
+func (s *Server) WithPhaseDecisions(svc PhaseDecisionsService) *Server {
+	s.phaseDecisions = svc
+	return s
+}
+
 // ServeHTTP implements the http.Handler interface.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
@@ -123,5 +133,15 @@ func (s *Server) routes() {
 
 		// Circuit breakers
 		r.Get("/breakers", s.handleListBreakers)
+	})
+
+	// M-E0 orchestator-facing governance facade. Shares the same middleware
+	// chain (W3C trace, logger, recoverer, JSON content-type) as /api/v1 —
+	// internal-network only, no auth (governance is reachable only inside the
+	// compose network). See decisions_handler.go.
+	s.router.Route("/governance/v1", func(r chi.Router) {
+		r.Post("/decisions/phase", s.handleDecisionPhase)
+		r.Post("/decisions/sensitive", s.handleDecisionSensitive)
+		r.Get("/approvals/{change_id}/{phase_id}/status", s.handleApprovalStatus)
 	})
 }

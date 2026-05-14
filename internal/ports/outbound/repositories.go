@@ -95,3 +95,49 @@ type AuditEntryRepository interface {
 	Append(ctx context.Context, entry *audit.AuditEntry) error
 	Query(ctx context.Context, filter AuditFilter) ([]*audit.AuditEntry, int, error)
 }
+
+// --- M-E0 orchestator-facing decision facade ---
+//
+// PhaseDecisionRecord and PhaseApprovalRecord are intentionally flat structs,
+// not domain aggregates. The /governance/v1/decisions/... surface is an
+// orchestator-facing facade for V1 (default-allow). The "real" policy engine
+// stays in the policy domain via policy_decisions. Sprint 3 unification will
+// decide whether to promote these to aggregates or merge into policy.
+
+// PhaseDecisionRecord is the row persisted for each /governance/v1/decisions/*
+// evaluation.
+type PhaseDecisionRecord struct {
+	ID         string
+	ChangeID   string
+	PhaseType  string // e.g. "explore", "apply", "sensitive"
+	Capability string // populated only for sensitive evaluations
+	Sensitive  bool
+	Decision   string // "allow" | "deny" | "require_approval"
+	AgentRole  string
+	Strategy   string
+	Reason     string
+	CreatedAt  time.Time
+}
+
+// PhaseApprovalRecord is the row queried by approval polling.
+type PhaseApprovalRecord struct {
+	ChangeID  string
+	PhaseID   string
+	Status    string // "pending" | "granted" | "denied"
+	Reason    string
+	DecidedBy string
+	DecidedAt *time.Time
+	CreatedAt time.Time
+}
+
+// PhaseDecisionRepository persists phase/sensitive decisions for M-E0 audit.
+type PhaseDecisionRepository interface {
+	Save(ctx context.Context, rec PhaseDecisionRecord) error
+}
+
+// PhaseApprovalRepository looks up explicit approval gates by (change, phase).
+// Find returns (nil, nil) when no row exists — interpreted by callers as
+// "auto-granted" under V1 default-allow.
+type PhaseApprovalRepository interface {
+	Find(ctx context.Context, changeID, phaseID string) (*PhaseApprovalRecord, error)
+}
