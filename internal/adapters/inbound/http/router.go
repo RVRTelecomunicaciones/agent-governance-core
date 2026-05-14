@@ -16,15 +16,21 @@ type Server struct {
 	approvals  inbound.ApprovalService
 	queries    inbound.QueryService
 	escalation inbound.EscalationPort
+	db         DBPinger
 }
 
 // NewServer creates a configured HTTP server with all routes registered.
+//
+// db is used exclusively by the /ready readiness probe and may be nil in tests
+// that do not exercise that endpoint; in that case /ready will report
+// "degraded".
 func NewServer(
 	governance inbound.GovernanceService,
 	control inbound.WorkflowControl,
 	approvals inbound.ApprovalService,
 	queries inbound.QueryService,
 	escalation inbound.EscalationPort,
+	db DBPinger,
 ) *Server {
 	s := &Server{
 		router:     chi.NewRouter(),
@@ -33,6 +39,7 @@ func NewServer(
 		approvals:  approvals,
 		queries:    queries,
 		escalation: escalation,
+		db:         db,
 	}
 	s.router.Use(middleware.Logger)
 	s.router.Use(middleware.Recoverer)
@@ -48,6 +55,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) routes() {
+	// Liveness and readiness probes — mounted at the root, outside /api/v1,
+	// so probes are independent of business endpoints and require no auth path.
+	s.router.Get("/health", s.handleHealth)
+	s.router.Get("/ready", s.handleReady)
+
 	s.router.Route("/api/v1", func(r chi.Router) {
 		// Tasks
 		r.Post("/tasks", s.handleSubmitTask)
