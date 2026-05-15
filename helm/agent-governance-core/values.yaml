@@ -1,0 +1,84 @@
+# Default values for agent-governance-core.
+# Override via `helm install -f my-values.yaml` or `--set key=value`.
+
+image:
+  repository: ghcr.io/rvrtelecomunicaciones/agent-governance-core
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+
+config:
+  port: "8080"
+  logLevel: info
+  # OpenTelemetry tracing — set true to emit OTLP spans (requires
+  # an OTEL_EXPORTER_OTLP_ENDPOINT env or Otel Collector sidecar).
+  otelEnabled: false
+  # Adaptive routing dynamically re-classifies tasks based on past
+  # outcomes. Defaults to false (deterministic routing) per the
+  # governance-core CLAUDE.md "do not retry automatically" stance.
+  adaptiveRoutingEnabled: false
+
+# Database connection. governance-core's CLAUDE.md treats decisions as
+# append-only; the underlying schema enforces immutability for
+# routing_decisions and policy_decisions.
+secrets:
+  dbHost: ""
+  dbPort: "5432"
+  dbUser: ""
+  dbPassword: ""
+  dbName: ""
+  dbSslMode: "require"
+
+# governance-core does NOT enforce inbound auth in V1 — it is meant to
+# run on an internal/VPC network reachable only by the orchestator (and
+# operators behind a bastion). If you expose it publicly, front it with
+# a gateway that does mTLS or API-key checks.
+
+migrate:
+  # governance-core uses goose-format migrations applied via psql in a
+  # sidecar in compose; for k8s use a Job (rendered separately) or run
+  # out-of-band. Set true to render an init container that runs psql
+  # against the connection in secrets.
+  enabled: false
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 5
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations: {}
