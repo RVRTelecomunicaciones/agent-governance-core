@@ -388,3 +388,61 @@ func TestEvaluatePolicy_DestructiveActionDenied(t *testing.T) {
 	require.NotNil(t, pd)
 	assert.Equal(t, policy.OutcomeDeny, pd.Outcome())
 }
+
+// TestEvaluatePolicy_IL2_SddApply_TasksDone_Passes verifies that the full policy
+// evaluation service does NOT deny sdd_apply when tasks_phase_status=done. Spec #47.
+func TestEvaluatePolicy_IL2_SddApply_TasksDone_Passes(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "done"}
+	tk, routingRepo, wfRepo := setupRoutedWorkflow(t, fixtures.WithTaskMetadata(meta))
+	taskRepo := &mockTaskRepo{tasks: map[shared.TaskID]*task.Task{tk.ID(): tk}}
+	policyRepo := &mockPolicyRepo{}
+	idGen := &mockIDGen{}
+	clock := newMockClock()
+	auditRec := &mockAuditRecorder{}
+
+	svc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, idGen, clock, auditRec)
+	pd, err := svc.EvaluatePolicy(context.Background(), tk.ID(), "sdd_apply")
+
+	require.NoError(t, err)
+	require.NotNil(t, pd)
+	// With tasks_phase_status=done, IL2 passes. No deny outcome.
+	assert.NotEqual(t, policy.OutcomeDeny, pd.Outcome())
+}
+
+// TestEvaluatePolicy_IL2_SddApply_TasksRunning_Denied verifies that the full policy
+// evaluation service denies sdd_apply when tasks_phase_status=running. Spec #47.
+func TestEvaluatePolicy_IL2_SddApply_TasksRunning_Denied(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "running"}
+	tk, routingRepo, wfRepo := setupRoutedWorkflow(t, fixtures.WithTaskMetadata(meta))
+	taskRepo := &mockTaskRepo{tasks: map[shared.TaskID]*task.Task{tk.ID(): tk}}
+	policyRepo := &mockPolicyRepo{}
+	idGen := &mockIDGen{}
+	clock := newMockClock()
+	auditRec := &mockAuditRecorder{}
+
+	svc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, idGen, clock, auditRec)
+	pd, err := svc.EvaluatePolicy(context.Background(), tk.ID(), "sdd_apply")
+
+	require.NoError(t, err)
+	require.NotNil(t, pd)
+	assert.Equal(t, policy.OutcomeDeny, pd.Outcome())
+}
+
+// TestEvaluatePolicy_IL2_SddApply_TasksBlocked_Denied verifies that the full policy
+// evaluation service denies sdd_apply when tasks_phase_status=blocked. Spec #47.
+func TestEvaluatePolicy_IL2_SddApply_TasksBlocked_Denied(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "blocked"}
+	tk, routingRepo, wfRepo := setupRoutedWorkflow(t, fixtures.WithTaskMetadata(meta))
+	taskRepo := &mockTaskRepo{tasks: map[shared.TaskID]*task.Task{tk.ID(): tk}}
+	policyRepo := &mockPolicyRepo{}
+	idGen := &mockIDGen{}
+	clock := newMockClock()
+	auditRec := &mockAuditRecorder{}
+
+	svc := policyeval.NewEvaluatePolicyService(taskRepo, routingRepo, policyRepo, wfRepo, idGen, clock, auditRec)
+	pd, err := svc.EvaluatePolicy(context.Background(), tk.ID(), "sdd_apply")
+
+	require.NoError(t, err)
+	require.NotNil(t, pd)
+	assert.Equal(t, policy.OutcomeDeny, pd.Outcome())
+}

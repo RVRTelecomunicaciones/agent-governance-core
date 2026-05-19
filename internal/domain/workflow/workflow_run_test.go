@@ -418,6 +418,32 @@ func TestWorkflowRun_KillFromQuarantined_Fails(t *testing.T) {
 	assert.Equal(t, StatusQuarantined, wf.Status)
 }
 
+// TestSDD_DoneMapping_ApprovedIsNotTerminal verifies that StatusApproved is NOT
+// the terminal "done" state for the SDD tasks phase. Spec #47 — IL2 requires
+// tasks phase status "done", which maps to StatusCompleted at the workflow layer,
+// NOT to StatusApproved (which is an intermediate human-approval gate).
+func TestSDD_DoneMapping_ApprovedIsNotTerminal(t *testing.T) {
+	assert.False(t, StatusApproved.IsTerminal(),
+		"StatusApproved is an intermediate gate, not the SDD done equivalent")
+}
+
+// TestSDD_DoneMapping_CompletedIsTerminal verifies that StatusCompleted is the
+// terminal success state, corresponding to SDD tasks phase "done". Spec #47.
+func TestSDD_DoneMapping_CompletedIsTerminal(t *testing.T) {
+	assert.True(t, StatusCompleted.IsTerminal(),
+		"StatusCompleted is the terminal success state mapping to SDD tasks-phase done")
+}
+
+// TestSDD_DoneMapping_ApprovedCanTransitionToRunning verifies the approval flow:
+// StatusApproved → StatusRunning (approved does NOT equal done; running must
+// complete to reach the done/completed equivalent). Spec #47.
+func TestSDD_DoneMapping_ApprovedCanTransitionToRunning(t *testing.T) {
+	assert.True(t, IsValidTransition(StatusApproved, StatusRunning),
+		"approved must be able to transition to running (approval gate, not done gate)")
+	assert.False(t, IsValidTransition(StatusApproved, StatusCompleted),
+		"approved cannot skip running to jump directly to completed")
+}
+
 func TestWorkflowRun_Quarantine_FromNonRunning_Fails(t *testing.T) {
 	nonRunning := []WorkflowStatus{
 		StatusCreated, StatusRouted, StatusPolicyChecked,
