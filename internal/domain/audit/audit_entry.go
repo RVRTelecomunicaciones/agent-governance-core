@@ -88,11 +88,11 @@ func (ae *AuditEntry) WithWorkflowRunID(id shared.WorkflowRunID) *AuditEntry {
 
 // --- Accessors ---
 
-func (ae *AuditEntry) ID() shared.AuditEntryID         { return ae.id }
-func (ae *AuditEntry) TaskID() *shared.TaskID           { return ae.taskID }
+func (ae *AuditEntry) ID() shared.AuditEntryID              { return ae.id }
+func (ae *AuditEntry) TaskID() *shared.TaskID               { return ae.taskID }
 func (ae *AuditEntry) WorkflowRunID() *shared.WorkflowRunID { return ae.workflowRunID }
-func (ae *AuditEntry) Actor() shared.ActorID            { return ae.actor }
-func (ae *AuditEntry) Action() string                   { return ae.action }
-func (ae *AuditEntry) Outcome() string                  { return ae.outcome }
-func (ae *AuditEntry) Context() AuditContext            { return ae.context }
-func (ae *AuditEntry) CreatedAt() shared.Timestamp      { return ae.createdAt }
+func (ae *AuditEntry) Actor() shared.ActorID                { return ae.actor }
+func (ae *AuditEntry) Action() string                       { return ae.action }
+func (ae *AuditEntry) Outcome() string                      { return ae.outcome }
+func (ae *AuditEntry) Context() AuditContext                { return ae.context }
+func (ae *AuditEntry) CreatedAt() shared.Timestamp          { return ae.createdAt }

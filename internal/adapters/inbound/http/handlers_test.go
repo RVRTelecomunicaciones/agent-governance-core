@@ -594,9 +594,9 @@ func TestTriggerEscalation_Valid(t *testing.T) {
 	})
 
 	rec := doRequest(srv, "POST", "/api/v1/tasks/"+testULID+"/escalate", map[string]any{
-		"condition_type": "timeout",
+		"condition_type":   "timeout",
 		"condition_params": map[string]any{"threshold": 300},
-		"target":         "human",
+		"target":           "human",
 	})
 
 	assert.Equal(t, http.StatusCreated, rec.Code)

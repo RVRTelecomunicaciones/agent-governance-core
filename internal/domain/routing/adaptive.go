@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"fmt"
 	"strings"
 	"time"
 )
@@ -109,7 +108,7 @@ func buildAdjustment(fr FailureRate, granularity string, window time.Duration) *
 		FailureRate:     fr.Rate,
 		SampleSize:      fr.Total,
 		Granularity:     granularity,
-		Window:          fmt.Sprintf("%s", window),
+		Window:          window.String(),
 	}
 }
 

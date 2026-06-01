@@ -7,10 +7,10 @@ import (
 )
 
 var (
-	ErrEmptyAction              = errors.New("evaluated action must not be empty")
-	ErrMissingConstraints       = errors.New("allow_with_constraints outcome requires at least one constraint")
-	ErrMissingApproval          = errors.New("require_approval outcome requires an approval requirement")
-	ErrEmptyReason              = errors.New("reason must not be empty")
+	ErrEmptyAction        = errors.New("evaluated action must not be empty")
+	ErrMissingConstraints = errors.New("allow_with_constraints outcome requires at least one constraint")
+	ErrMissingApproval    = errors.New("require_approval outcome requires an approval requirement")
+	ErrEmptyReason        = errors.New("reason must not be empty")
 )
 
 // PolicyDecision is an immutable aggregate representing the result of policy evaluation for a task action.
@@ -104,13 +104,13 @@ func Reconstruct(
 
 // --- Accessors ---
 
-func (d *PolicyDecision) ID() shared.PolicyDecisionID        { return d.id }
-func (d *PolicyDecision) TaskID() shared.TaskID               { return d.taskID }
-func (d *PolicyDecision) EvaluatedAction() string             { return d.evaluatedAction }
-func (d *PolicyDecision) Outcome() PolicyOutcome              { return d.outcome }
+func (d *PolicyDecision) ID() shared.PolicyDecisionID               { return d.id }
+func (d *PolicyDecision) TaskID() shared.TaskID                     { return d.taskID }
+func (d *PolicyDecision) EvaluatedAction() string                   { return d.evaluatedAction }
+func (d *PolicyDecision) Outcome() PolicyOutcome                    { return d.outcome }
 func (d *PolicyDecision) ApprovalRequirement() *ApprovalRequirement { return d.approvalRequirement }
-func (d *PolicyDecision) Reason() string                      { return d.reason }
-func (d *PolicyDecision) CreatedAt() shared.Timestamp         { return d.createdAt }
+func (d *PolicyDecision) Reason() string                            { return d.reason }
+func (d *PolicyDecision) CreatedAt() shared.Timestamp               { return d.createdAt }
 
 // Constraints returns a defensive copy of the constraints slice.
 func (d *PolicyDecision) Constraints() []PolicyConstraint {

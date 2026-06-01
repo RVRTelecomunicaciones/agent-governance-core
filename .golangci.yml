@@ -1,0 +1,75 @@
+# Schema v2 — golangci-lint >= v2.1.0.
+# Reference: https://github.com/golangci/golangci-lint/blob/v2.12.2/.golangci.reference.yml
+# Pinned version: v2.12.2 (see .github/workflows/ci.yaml).
+version: "2"
+
+run:
+  timeout: 3m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - revive
+    - staticcheck
+    - unparam
+    - unused
+
+  settings:
+    gosec:
+      excludes:
+        - G104  # errcheck overlap — already caught by errcheck linter
+        - G112  # Slowloris: ReadHeaderTimeout not set — advisory for this internal service
+        - G115  # integer overflow conversion — false positive on rune arithmetic in tests
+
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+          # The domain type naming convention (ApprovalStatus, EscalationTrigger, etc.)
+          # predates this lint rule. The stutter and missing-comment warnings flood the
+          # baseline. Disable for green baseline; re-enable when the codebase adds godoc.
+        - name: package-comments
+          disabled: true
+          # No package-level comments in the existing codebase.
+
+    staticcheck:
+      checks:
+        - "all"
+        # QF-class codes are "quick fix" style suggestions, not bugs.
+        # Suppressed on the existing codebase to keep the baseline green.
+        # Re-evaluate when doing a dedicated cleanup pass.
+        - "-QF1001"  # De Morgan's law refactor suggestion
+        - "-QF1008"  # could remove embedded field from selector
+        - "-QF1011"  # could omit type in declaration (inferred from RHS)
+        # ST1000/ST1020: package-level comment requirements.
+        # The existing codebase has no package comments — suppress to avoid a flood.
+        - "-ST1000"
+        - "-ST1020"
+
+exclusions:
+  generated: lax
+  presets:
+    - common-false-positives
+    - legacy
+    - std-error-handling
+  paths:
+    - third_party$
+    - builtin$
+    - examples$
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

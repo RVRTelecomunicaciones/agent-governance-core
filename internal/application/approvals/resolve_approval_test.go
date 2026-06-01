@@ -113,14 +113,26 @@ func (m *mockIDGen) nextULID() string {
 	return base[:24] + suffix
 }
 
-func (m *mockIDGen) NewTaskID() shared.TaskID                           { return shared.TaskID(m.nextULID()) }
-func (m *mockIDGen) NewWorkflowRunID() shared.WorkflowRunID             { return shared.WorkflowRunID(m.nextULID()) }
-func (m *mockIDGen) NewRoutingDecisionID() shared.RoutingDecisionID     { return shared.RoutingDecisionID(m.nextULID()) }
-func (m *mockIDGen) NewPolicyDecisionID() shared.PolicyDecisionID       { return shared.PolicyDecisionID(m.nextULID()) }
-func (m *mockIDGen) NewApprovalRequestID() shared.ApprovalRequestID     { return shared.ApprovalRequestID(m.nextULID()) }
-func (m *mockIDGen) NewExecutionLeaseID() shared.ExecutionLeaseID       { return shared.ExecutionLeaseID(m.nextULID()) }
-func (m *mockIDGen) NewEscalationTriggerID() shared.EscalationTriggerID { return shared.EscalationTriggerID(m.nextULID()) }
-func (m *mockIDGen) NewAuditEntryID() shared.AuditEntryID               { return shared.AuditEntryID(m.nextULID()) }
+func (m *mockIDGen) NewTaskID() shared.TaskID { return shared.TaskID(m.nextULID()) }
+func (m *mockIDGen) NewWorkflowRunID() shared.WorkflowRunID {
+	return shared.WorkflowRunID(m.nextULID())
+}
+func (m *mockIDGen) NewRoutingDecisionID() shared.RoutingDecisionID {
+	return shared.RoutingDecisionID(m.nextULID())
+}
+func (m *mockIDGen) NewPolicyDecisionID() shared.PolicyDecisionID {
+	return shared.PolicyDecisionID(m.nextULID())
+}
+func (m *mockIDGen) NewApprovalRequestID() shared.ApprovalRequestID {
+	return shared.ApprovalRequestID(m.nextULID())
+}
+func (m *mockIDGen) NewExecutionLeaseID() shared.ExecutionLeaseID {
+	return shared.ExecutionLeaseID(m.nextULID())
+}
+func (m *mockIDGen) NewEscalationTriggerID() shared.EscalationTriggerID {
+	return shared.EscalationTriggerID(m.nextULID())
+}
+func (m *mockIDGen) NewAuditEntryID() shared.AuditEntryID { return shared.AuditEntryID(m.nextULID()) }
 
 type mockClock struct{ now time.Time }
 

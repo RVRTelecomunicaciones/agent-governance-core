@@ -22,21 +22,21 @@ import (
 type DecisionType string
 
 const (
-	DecisionAllow            DecisionType = "allow"
-	DecisionDeny             DecisionType = "deny"
-	DecisionRequireApproval  DecisionType = "require_approval"
-	defaultAgentRolePhase                 = "team-lead"
-	defaultReasonPhase                    = "M-E0 default-allow policy"
-	defaultReasonSensitive                = "M-E0 default-allow sensitive policy"
+	DecisionAllow           DecisionType = "allow"
+	DecisionDeny            DecisionType = "deny"
+	DecisionRequireApproval DecisionType = "require_approval"
+	defaultAgentRolePhase                = "team-lead"
+	defaultReasonPhase                   = "M-E0 default-allow policy"
+	defaultReasonSensitive               = "M-E0 default-allow sensitive policy"
 )
 
 // ApprovalStatus mirrors the orchestator wire enum.
 type ApprovalStatus string
 
 const (
-	ApprovalPending  ApprovalStatus = "pending"
-	ApprovalGranted  ApprovalStatus = "granted"
-	ApprovalDenied   ApprovalStatus = "denied"
+	ApprovalPending ApprovalStatus = "pending"
+	ApprovalGranted ApprovalStatus = "granted"
+	ApprovalDenied  ApprovalStatus = "denied"
 )
 
 // PhaseDecisionInput is what the HTTP layer hands the service.

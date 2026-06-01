@@ -62,8 +62,8 @@ func (m *mockWorkflowStarter) StartWorkflow(_ context.Context, taskID shared.Tas
 // --- Helpers ---
 
 var (
-	testNow        = shared.MustTimestamp(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
-	testInput      = inbound.SubmitTaskInput{
+	testNow   = shared.MustTimestamp(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	testInput = inbound.SubmitTaskInput{
 		Type:     task.TypeDevelopment,
 		Title:    "process task test",
 		Scope:    task.ScopeFile,

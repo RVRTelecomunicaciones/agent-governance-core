@@ -20,8 +20,8 @@ type RouteTaskService struct {
 	idGen       outbound.IDGenerator
 	clock       outbound.Clock
 	audit       outbound.AuditRecorder
-	memory     outbound.MemoryContextProvider // can be nil — degradable
-	statsStore *FailureStatsStore             // nil when adaptive routing disabled
+	memory      outbound.MemoryContextProvider // can be nil — degradable
+	statsStore  *FailureStatsStore             // nil when adaptive routing disabled
 }
 
 // NewRouteTaskService creates a new RouteTaskService with all required dependencies.

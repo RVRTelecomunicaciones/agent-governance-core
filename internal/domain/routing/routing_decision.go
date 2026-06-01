@@ -8,9 +8,9 @@ import (
 
 // Errors for the routing decision aggregate.
 var (
-	ErrMissingTaskID     = errors.New("routing decision must reference a task")
-	ErrNoEvaluations     = errors.New("routing decision must have at least one evaluated strategy")
-	ErrEmptyReason       = errors.New("routing decision must have a reason")
+	ErrMissingTaskID = errors.New("routing decision must reference a task")
+	ErrNoEvaluations = errors.New("routing decision must have at least one evaluated strategy")
+	ErrEmptyReason   = errors.New("routing decision must have a reason")
 )
 
 // RoutingDecision is an IMMUTABLE aggregate representing the outcome of routing evaluation.
@@ -105,12 +105,12 @@ func Reconstruct(
 
 // --- Accessors ---
 
-func (d *RoutingDecision) ID() shared.RoutingDecisionID        { return d.id }
-func (d *RoutingDecision) TaskID() shared.TaskID                { return d.taskID }
-func (d *RoutingDecision) SelectedStrategy() RoutingStrategy    { return d.selectedStrategy }
-func (d *RoutingDecision) SelectedAgentRole() AgentRole         { return d.selectedAgentRole }
-func (d *RoutingDecision) Reason() string                       { return d.reason }
-func (d *RoutingDecision) CreatedAt() shared.Timestamp          { return d.createdAt }
+func (d *RoutingDecision) ID() shared.RoutingDecisionID      { return d.id }
+func (d *RoutingDecision) TaskID() shared.TaskID             { return d.taskID }
+func (d *RoutingDecision) SelectedStrategy() RoutingStrategy { return d.selectedStrategy }
+func (d *RoutingDecision) SelectedAgentRole() AgentRole      { return d.selectedAgentRole }
+func (d *RoutingDecision) Reason() string                    { return d.reason }
+func (d *RoutingDecision) CreatedAt() shared.Timestamp       { return d.createdAt }
 
 // EvaluatedStrategies returns a defensive copy of the evaluated strategies.
 func (d *RoutingDecision) EvaluatedStrategies() []StrategyEvaluation {

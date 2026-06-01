@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-build-test:
+    name: vet + lint + build + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache: true
+
+      - name: vet
+        run: go vet ./...
+
+      - name: lint
+        # `install-mode: goinstall` builds golangci-lint from source with
+        # the Go toolchain already set up by setup-go (Go 1.26.x).
+        # The default binary mode pulls a precompiled artifact built with
+        # an older Go (e.g. v2.12.2 ships built with Go 1.24), which
+        # rejects projects whose go.mod targets Go 1.26 with:
+        #   "the Go language version (go1.24) used to build golangci-lint
+        #    is lower than the targeted Go version (1.26)"
+        # Building from source guarantees the lint binary's runtime Go
+        # matches (or exceeds) the project's targeted version.
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.12.2
+          install-mode: goinstall
+
+      - name: build
+        run: go build ./...
+
+      - name: test (short — unit only, no Docker/testcontainers)
+        # Integration tests live under test/integration/ and carry the
+        # `//go:build integration` tag; they need a real Postgres container
+        # and are gated by `make test-integration` in a separate job.
+        # `go test ./... -short` skips any test that calls t.Skip under
+        # testing.Short(), and the integration tag guarantees integration
+        # tests are never compiled here (no tag → no build).
+        run: make test-short

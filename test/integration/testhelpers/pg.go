@@ -85,7 +85,7 @@ func applyMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	sort.Strings(files)
 
 	for _, f := range files {
-		content, err := os.ReadFile(f)
+		content, err := os.ReadFile(f) //nolint:gosec // G304: path is built from glob-matched migration files in a fixed directory — not user input
 		if err != nil {
 			return fmt.Errorf("reading %s: %w", f, err)
 		}

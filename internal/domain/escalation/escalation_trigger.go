@@ -19,9 +19,9 @@ var (
 type EscalationTarget string
 
 const (
-	TargetHuman      EscalationTarget = "human"
+	TargetHuman       EscalationTarget = "human"
 	TargetSeniorAgent EscalationTarget = "senior_agent"
-	TargetAdmin      EscalationTarget = "admin"
+	TargetAdmin       EscalationTarget = "admin"
 )
 
 var validEscalationTargets = map[EscalationTarget]bool{
@@ -137,9 +137,9 @@ func (et *EscalationTrigger) Resolve() error {
 // --- Accessors ---
 
 func (et *EscalationTrigger) ID() shared.EscalationTriggerID { return et.id }
-func (et *EscalationTrigger) TaskID() shared.TaskID           { return et.taskID }
-func (et *EscalationTrigger) Condition() EscalationCondition   { return et.condition }
-func (et *EscalationTrigger) Target() EscalationTarget         { return et.target }
-func (et *EscalationTrigger) Status() EscalationStatus         { return et.status }
-func (et *EscalationTrigger) TriggeredAt() *shared.Timestamp   { return et.triggeredAt }
-func (et *EscalationTrigger) CreatedAt() shared.Timestamp      { return et.createdAt }
+func (et *EscalationTrigger) TaskID() shared.TaskID          { return et.taskID }
+func (et *EscalationTrigger) Condition() EscalationCondition { return et.condition }
+func (et *EscalationTrigger) Target() EscalationTarget       { return et.target }
+func (et *EscalationTrigger) Status() EscalationStatus       { return et.status }
+func (et *EscalationTrigger) TriggeredAt() *shared.Timestamp { return et.triggeredAt }
+func (et *EscalationTrigger) CreatedAt() shared.Timestamp    { return et.createdAt }

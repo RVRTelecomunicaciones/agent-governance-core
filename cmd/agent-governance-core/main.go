@@ -45,7 +45,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("wiring: %w", err)
 	}
-	defer app.OTelShutdown(context.Background())
+	defer app.OTelShutdown(context.Background()) //nolint:errcheck // shutdown error at process exit is not actionable
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),

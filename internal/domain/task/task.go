@@ -253,16 +253,16 @@ func (t *Task) transitionTo(target TaskStatus, now shared.Timestamp) error {
 
 // --- Accessors ---
 
-func (t *Task) ID() shared.TaskID          { return t.id }
+func (t *Task) ID() shared.TaskID            { return t.id }
 func (t *Task) ParentTaskID() *shared.TaskID { return t.parentTaskID }
-func (t *Task) Type() TaskType              { return t.taskType }
-func (t *Task) Title() string               { return t.title }
-func (t *Task) Scope() TaskScope            { return t.scope }
-func (t *Task) Priority() shared.Priority   { return t.priority }
-func (t *Task) RiskLevel() shared.RiskLevel { return t.riskLevel }
-func (t *Task) Status() TaskStatus          { return t.status }
-func (t *Task) CreatedAt() shared.Timestamp { return t.createdAt }
-func (t *Task) UpdatedAt() shared.Timestamp { return t.updatedAt }
+func (t *Task) Type() TaskType               { return t.taskType }
+func (t *Task) Title() string                { return t.title }
+func (t *Task) Scope() TaskScope             { return t.scope }
+func (t *Task) Priority() shared.Priority    { return t.priority }
+func (t *Task) RiskLevel() shared.RiskLevel  { return t.riskLevel }
+func (t *Task) Status() TaskStatus           { return t.status }
+func (t *Task) CreatedAt() shared.Timestamp  { return t.createdAt }
+func (t *Task) UpdatedAt() shared.Timestamp  { return t.updatedAt }
 
 // Metadata returns a defensive copy of the task metadata.
 func (t *Task) Metadata() TaskMetadata {
