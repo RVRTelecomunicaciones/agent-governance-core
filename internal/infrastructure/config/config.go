@@ -23,9 +23,9 @@ import (
 
 // Config holds the full application configuration.
 type Config struct {
-	ServerPort  int
-	DB          database.Config
-	LogLevel    string
+	ServerPort             int
+	DB                     database.Config
+	LogLevel               string
 	OTelEnabled            bool
 	AdaptiveRoutingEnabled bool
 }
@@ -42,7 +42,7 @@ func Load() Config {
 			Database: env("DB_NAME", "governance"),
 			SSLMode:  env("DB_SSLMODE", "disable"),
 		},
-		LogLevel:    env("LOG_LEVEL", "info"),
+		LogLevel:               env("LOG_LEVEL", "info"),
 		OTelEnabled:            envBool("OTEL_ENABLED", false),
 		AdaptiveRoutingEnabled: envBool("ADAPTIVE_ROUTING_ENABLED", false),
 	}

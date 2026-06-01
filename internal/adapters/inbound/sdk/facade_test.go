@@ -50,10 +50,10 @@ func (m *mockGovernanceService) StartWorkflow(ctx context.Context, taskID shared
 }
 
 type mockWorkflowControl struct {
-	killFn     func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
-	pauseFn    func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
-	resumeFn   func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
-	attemptFn  func(ctx context.Context, id shared.WorkflowRunID, result execution.AttemptResult) (*workflow.WorkflowRun, error)
+	killFn    func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
+	pauseFn   func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
+	resumeFn  func(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error
+	attemptFn func(ctx context.Context, id shared.WorkflowRunID, result execution.AttemptResult) (*workflow.WorkflowRun, error)
 }
 
 func (m *mockWorkflowControl) KillWorkflow(ctx context.Context, id shared.WorkflowRunID, reason string, actor shared.ActorID) error {
@@ -70,8 +70,8 @@ func (m *mockWorkflowControl) RegisterAttempt(ctx context.Context, id shared.Wor
 }
 
 type mockApprovalService struct {
-	resolveFn     func(ctx context.Context, input inbound.ResolveApprovalInput) (*approval.ApprovalRequest, error)
-	getPendingFn  func(ctx context.Context) ([]*approval.ApprovalRequest, error)
+	resolveFn    func(ctx context.Context, input inbound.ResolveApprovalInput) (*approval.ApprovalRequest, error)
+	getPendingFn func(ctx context.Context) ([]*approval.ApprovalRequest, error)
 }
 
 func (m *mockApprovalService) ResolveApproval(ctx context.Context, input inbound.ResolveApprovalInput) (*approval.ApprovalRequest, error) {
@@ -82,10 +82,10 @@ func (m *mockApprovalService) GetPendingApprovals(ctx context.Context) ([]*appro
 }
 
 type mockQueryService struct {
-	getTaskFn        func(ctx context.Context, id shared.TaskID) (*task.Task, error)
-	getWorkflowFn    func(ctx context.Context, id shared.WorkflowRunID) (*workflow.WorkflowRun, error)
-	getWfByTaskFn    func(ctx context.Context, taskID shared.TaskID) (*workflow.WorkflowRun, error)
-	queryAuditFn     func(ctx context.Context, filter outbound.AuditFilter) ([]*audit.AuditEntry, int, error)
+	getTaskFn     func(ctx context.Context, id shared.TaskID) (*task.Task, error)
+	getWorkflowFn func(ctx context.Context, id shared.WorkflowRunID) (*workflow.WorkflowRun, error)
+	getWfByTaskFn func(ctx context.Context, taskID shared.TaskID) (*workflow.WorkflowRun, error)
+	queryAuditFn  func(ctx context.Context, filter outbound.AuditFilter) ([]*audit.AuditEntry, int, error)
 }
 
 func (m *mockQueryService) GetTask(ctx context.Context, id shared.TaskID) (*task.Task, error) {

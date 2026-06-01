@@ -10,8 +10,8 @@ import (
 
 // Errors for the approval aggregate.
 var (
-	ErrEmptyReason   = errors.New("approval reason must not be empty")
-	ErrNotPending    = errors.New("approval request is not in pending status")
+	ErrEmptyReason = errors.New("approval reason must not be empty")
+	ErrNotPending  = errors.New("approval request is not in pending status")
 )
 
 // --- ApprovalStatus enum ---
@@ -166,12 +166,12 @@ func (ar *ApprovalRequest) resolve(resolvedBy shared.ActorID, reason string, sta
 
 // --- Accessors ---
 
-func (ar *ApprovalRequest) ID() shared.ApprovalRequestID   { return ar.id }
-func (ar *ApprovalRequest) TaskID() shared.TaskID           { return ar.taskID }
+func (ar *ApprovalRequest) ID() shared.ApprovalRequestID        { return ar.id }
+func (ar *ApprovalRequest) TaskID() shared.TaskID               { return ar.taskID }
 func (ar *ApprovalRequest) WorkflowRunID() shared.WorkflowRunID { return ar.workflowRunID }
-func (ar *ApprovalRequest) Reason() string                  { return ar.reason }
-func (ar *ApprovalRequest) RequiredApprover() ApproverSpec   { return ar.requiredApprover }
-func (ar *ApprovalRequest) Status() ApprovalStatus          { return ar.status }
-func (ar *ApprovalRequest) Resolution() *ApprovalResolution { return ar.resolution }
-func (ar *ApprovalRequest) ExpiresAt() *shared.Timestamp    { return ar.expiresAt }
-func (ar *ApprovalRequest) CreatedAt() shared.Timestamp     { return ar.createdAt }
+func (ar *ApprovalRequest) Reason() string                      { return ar.reason }
+func (ar *ApprovalRequest) RequiredApprover() ApproverSpec      { return ar.requiredApprover }
+func (ar *ApprovalRequest) Status() ApprovalStatus              { return ar.status }
+func (ar *ApprovalRequest) Resolution() *ApprovalResolution     { return ar.resolution }
+func (ar *ApprovalRequest) ExpiresAt() *shared.Timestamp        { return ar.expiresAt }
+func (ar *ApprovalRequest) CreatedAt() shared.Timestamp         { return ar.createdAt }

@@ -8,18 +8,18 @@ import (
 
 // Instruments holds all OTel metric instruments used by the governance system.
 type Instruments struct {
-	TasksSubmitted      metric.Int64Counter
-	TasksCompleted      metric.Int64Counter
-	RoutingDuration     metric.Float64Histogram
-	PolicyDuration      metric.Float64Histogram
-	PolicyOutcomes      metric.Int64Counter
-	WorkflowDuration    metric.Float64Histogram
-	WorkflowTransitions metric.Int64Counter
-	ApprovalWait        metric.Float64Histogram
-	ExecutionAttempts    metric.Float64Histogram
-	ExecutionFailures   metric.Int64Counter
-	MemoryDuration      metric.Float64Histogram
-	MemoryDegraded      metric.Int64Counter
+	TasksSubmitted            metric.Int64Counter
+	TasksCompleted            metric.Int64Counter
+	RoutingDuration           metric.Float64Histogram
+	PolicyDuration            metric.Float64Histogram
+	PolicyOutcomes            metric.Int64Counter
+	WorkflowDuration          metric.Float64Histogram
+	WorkflowTransitions       metric.Int64Counter
+	ApprovalWait              metric.Float64Histogram
+	ExecutionAttempts         metric.Float64Histogram
+	ExecutionFailures         metric.Int64Counter
+	MemoryDuration            metric.Float64Histogram
+	MemoryDegraded            metric.Int64Counter
 	CircuitBreakerTransitions metric.Int64Counter
 	CircuitBreakerTrips       metric.Int64Counter
 }
@@ -130,18 +130,18 @@ func NewInstruments(meter metric.Meter) (*Instruments, error) {
 	}
 
 	return &Instruments{
-		TasksSubmitted:      tasksSubmitted,
-		TasksCompleted:      tasksCompleted,
-		RoutingDuration:     routingDuration,
-		PolicyDuration:      policyDuration,
-		PolicyOutcomes:      policyOutcomes,
-		WorkflowDuration:    workflowDuration,
-		WorkflowTransitions: workflowTransitions,
-		ApprovalWait:        approvalWait,
-		ExecutionAttempts:    executionAttempts,
-		ExecutionFailures:   executionFailures,
-		MemoryDuration:      memoryDuration,
-		MemoryDegraded:      memoryDegraded,
+		TasksSubmitted:            tasksSubmitted,
+		TasksCompleted:            tasksCompleted,
+		RoutingDuration:           routingDuration,
+		PolicyDuration:            policyDuration,
+		PolicyOutcomes:            policyOutcomes,
+		WorkflowDuration:          workflowDuration,
+		WorkflowTransitions:       workflowTransitions,
+		ApprovalWait:              approvalWait,
+		ExecutionAttempts:         executionAttempts,
+		ExecutionFailures:         executionFailures,
+		MemoryDuration:            memoryDuration,
+		MemoryDegraded:            memoryDegraded,
 		CircuitBreakerTransitions: cbTransitions,
 		CircuitBreakerTrips:       cbTrips,
 	}, nil

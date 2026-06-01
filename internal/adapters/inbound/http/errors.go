@@ -15,11 +15,11 @@ type ErrorResponse struct {
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(ErrorResponse{Error: message, Code: code})
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Error: message, Code: code}) //nolint:errcheck // response writer errors are not actionable at this boundary
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data) //nolint:errcheck // response writer errors are not actionable at this boundary
 }

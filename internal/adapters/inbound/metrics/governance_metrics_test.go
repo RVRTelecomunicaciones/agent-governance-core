@@ -29,7 +29,7 @@ func setupMeter(t *testing.T) (metric.Meter, *sdkmetric.ManualReader) {
 	t.Helper()
 	reader := sdkmetric.NewManualReader()
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
-	t.Cleanup(func() { mp.Shutdown(context.Background()) })
+	t.Cleanup(func() { _ = mp.Shutdown(context.Background()) }) //nolint:errcheck
 	return mp.Meter("test"), reader
 }
 

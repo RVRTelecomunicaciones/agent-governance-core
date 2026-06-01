@@ -13,11 +13,11 @@ type MemoryContext struct {
 
 // Weight constants for scoring factors. Sum = 1.0.
 const (
-	WeightRiskLevel    = 0.30
-	WeightTaskScope    = 0.25
-	WeightTaskType     = 0.20
-	WeightTaskPriority = 0.10
-	WeightMemorySimilar = 0.10
+	WeightRiskLevel        = 0.30
+	WeightTaskScope        = 0.25
+	WeightTaskType         = 0.20
+	WeightTaskPriority     = 0.10
+	WeightMemorySimilar    = 0.10
 	WeightMemoryHeuristics = 0.05
 )
 

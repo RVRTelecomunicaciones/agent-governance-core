@@ -104,17 +104,17 @@ type scannable interface {
 
 func scanTask(row scannable) (*task.Task, error) {
 	var (
-		id         string
-		parentID   *string
-		taskType   string
-		title      string
-		scope      string
-		priority   string
-		riskLevel  string
-		status     string
-		metaJSON   []byte
-		createdAt  shared.Timestamp
-		updatedAt  shared.Timestamp
+		id        string
+		parentID  *string
+		taskType  string
+		title     string
+		scope     string
+		priority  string
+		riskLevel string
+		status    string
+		metaJSON  []byte
+		createdAt shared.Timestamp
+		updatedAt shared.Timestamp
 	)
 
 	err := row.Scan(&id, &parentID, &taskType, &title, &scope, &priority, &riskLevel, &status, &metaJSON, &createdAt.Time, &updatedAt.Time)

@@ -46,7 +46,7 @@ func TestSetupOTel_Enabled(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		shutdown(context.Background())
+		_ = shutdown(context.Background()) //nolint:errcheck // shutdown errors in test cleanup are not actionable
 		otel.SetTracerProvider(noop.NewTracerProvider())
 		otel.SetMeterProvider(otel.GetMeterProvider()) // reset handled by shutdown
 	})
