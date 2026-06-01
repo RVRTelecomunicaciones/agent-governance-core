@@ -52,16 +52,17 @@ linters:
         - "-ST1000"
         - "-ST1020"
 
-exclusions:
-  generated: lax
-  presets:
-    - common-false-positives
-    - legacy
-    - std-error-handling
-  paths:
-    - third_party$
-    - builtin$
-    - examples$
+  # v2 schema: exclusions belong UNDER `linters`, not at the root.
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 formatters:
   enable:
