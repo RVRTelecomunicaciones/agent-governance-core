@@ -1,6 +1,17 @@
 package workflow
 
 // WorkflowStatus represents the current state of a workflow run.
+//
+// SDD phase mapping (Iron Law #2):
+// When sophia-orchestator evaluates whether the "tasks" SDD phase is ready to
+// allow the "apply" SDD phase, it checks that the tasks phase has status "done"
+// (PhaseStatusDone in the sophia-orchestator domain).
+//
+// At the governance layer this corresponds to the workflow for that task having
+// reached a terminal-success state (StatusCompleted). StatusApproved is an
+// intermediate human-approval state and is NOT the "done" criterion for IL2.
+// The governance policy rule il2_no_apply_without_tasks_done enforces this
+// boundary by inspecting task metadata["tasks_phase_status"].
 type WorkflowStatus string
 
 const (

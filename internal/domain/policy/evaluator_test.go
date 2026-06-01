@@ -15,10 +15,15 @@ import (
 
 func newTestTask(t *testing.T, taskType task.TaskType, scope task.TaskScope, riskLevel shared.RiskLevel) *task.Task {
 	t.Helper()
+	return newTestTaskWithMeta(t, taskType, scope, riskLevel, nil)
+}
+
+func newTestTaskWithMeta(t *testing.T, taskType task.TaskType, scope task.TaskScope, riskLevel shared.RiskLevel, meta task.TaskMetadata) *task.Task {
+	t.Helper()
 	id, err := shared.NewTaskID(ulid.Make().String())
 	require.NoError(t, err)
 	now := shared.MustTimestamp(time.Now())
-	tk, err := task.NewTask(id, nil, taskType, "test task", scope, shared.PriorityNormal, riskLevel, nil, now)
+	tk, err := task.NewTask(id, nil, taskType, "test task", scope, shared.PriorityNormal, riskLevel, meta, now)
 	require.NoError(t, err)
 	return tk
 }
@@ -230,9 +235,9 @@ func TestPolicyDecision_ValidCreation(t *testing.T) {
 
 // --- DefaultRules count ---
 
-func TestDefaultRules_Returns5Rules(t *testing.T) {
+func TestDefaultRules_Returns6Rules(t *testing.T) {
 	rules := policy.DefaultRules()
-	assert.Len(t, rules, 5)
+	assert.Len(t, rules, 6)
 }
 
 // --- Evaluator all rules evaluated ---
@@ -243,5 +248,76 @@ func TestEvaluatePolicy_AllRulesEvaluated(t *testing.T) {
 
 	result := policy.EvaluatePolicy(policy.DefaultRules(), ctx)
 
-	assert.Len(t, result.RulesEvaluated, 5, "all 5 rules should be evaluated")
+	assert.Len(t, result.RulesEvaluated, 6, "all 6 rules should be evaluated")
+}
+
+// --- IL2 governance rule tests ---
+
+// TestRule_IL2_SddApply_TasksDone_Passes verifies that sdd_apply with tasks_phase_status=done
+// does not trigger the IL2 deny rule. Spec #47.
+func TestRule_IL2_SddApply_TasksDone_Passes(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "done"}
+	tk := newTestTaskWithMeta(t, task.TypeDevelopment, task.ScopeFile, shared.RiskLevelLow, meta)
+	ctx := policy.PolicyContext{Task: tk, Action: "sdd_apply"}
+
+	rules := []policy.PolicyRule{policy.DefaultRules()[5]} // il2_no_apply_without_tasks_done
+	result := policy.EvaluatePolicy(rules, ctx)
+
+	// With tasks_phase_status=done, the IL2 rule passes (no deny).
+	for _, eval := range result.RulesEvaluated {
+		if eval.RuleID == "il2_no_apply_without_tasks_done" {
+			assert.True(t, eval.Passed, "IL2 rule must pass when tasks phase is done")
+			assert.Nil(t, eval.Outcome, "IL2 rule must not set a deny outcome when done")
+		}
+	}
+}
+
+// TestRule_IL2_SddApply_TasksRunning_Denied verifies that sdd_apply with tasks in
+// a non-done status (e.g. "running") triggers the IL2 deny. Spec #47.
+func TestRule_IL2_SddApply_TasksRunning_Denied(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "running"}
+	tk := newTestTaskWithMeta(t, task.TypeDevelopment, task.ScopeFile, shared.RiskLevelLow, meta)
+	ctx := policy.PolicyContext{Task: tk, Action: "sdd_apply"}
+
+	rules := []policy.PolicyRule{policy.DefaultRules()[5]} // il2_no_apply_without_tasks_done
+	result := policy.EvaluatePolicy(rules, ctx)
+
+	assert.Equal(t, policy.OutcomeDeny, result.Outcome)
+}
+
+// TestRule_IL2_SddApply_TasksBlocked_Denied verifies that tasks in "blocked" status
+// also triggers the IL2 deny. Spec #47.
+func TestRule_IL2_SddApply_TasksBlocked_Denied(t *testing.T) {
+	meta := task.TaskMetadata{"tasks_phase_status": "blocked"}
+	tk := newTestTaskWithMeta(t, task.TypeDevelopment, task.ScopeFile, shared.RiskLevelLow, meta)
+	ctx := policy.PolicyContext{Task: tk, Action: "sdd_apply"}
+
+	rules := []policy.PolicyRule{policy.DefaultRules()[5]}
+	result := policy.EvaluatePolicy(rules, ctx)
+
+	assert.Equal(t, policy.OutcomeDeny, result.Outcome)
+}
+
+// TestRule_IL2_NonSddApply_NotAffected verifies that IL2 does not affect non-sdd_apply actions.
+func TestRule_IL2_NonSddApply_NotAffected(t *testing.T) {
+	tk := newTestTask(t, task.TypeDevelopment, task.ScopeFile, shared.RiskLevelLow)
+	ctx := policy.PolicyContext{Task: tk, Action: "code_edit"} // not sdd_apply
+
+	rules := []policy.PolicyRule{policy.DefaultRules()[5]}
+	result := policy.EvaluatePolicy(rules, ctx)
+
+	// IL2 must not deny non-sdd_apply actions; default falls to allow_with_constraints
+	assert.NotEqual(t, policy.OutcomeDeny, result.Outcome)
+}
+
+// TestRule_IL2_SddApply_MissingMetadata_Denied verifies that absence of
+// tasks_phase_status in metadata fails closed (denies). Spec #47.
+func TestRule_IL2_SddApply_MissingMetadata_Denied(t *testing.T) {
+	tk := newTestTask(t, task.TypeDevelopment, task.ScopeFile, shared.RiskLevelLow)
+	ctx := policy.PolicyContext{Task: tk, Action: "sdd_apply"}
+
+	rules := []policy.PolicyRule{policy.DefaultRules()[5]}
+	result := policy.EvaluatePolicy(rules, ctx)
+
+	assert.Equal(t, policy.OutcomeDeny, result.Outcome)
 }

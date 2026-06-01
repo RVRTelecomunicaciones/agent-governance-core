@@ -13,6 +13,7 @@ func DefaultRules() []PolicyRule {
 		&systemScopeRequiresApproval{},
 		&destructiveActionDeny{},
 		&fileScopeLowRiskAllow{},
+		&il2NoApplyWithoutTasksDone{},
 	}
 }
 
@@ -119,4 +120,46 @@ func (r *fileScopeLowRiskAllow) Evaluate(ctx PolicyContext) RuleEvaluation {
 		}
 	}
 	return RuleEvaluation{RuleID: r.ID(), Passed: true, Outcome: nil, Reason: "not file scope with low risk"}
+}
+
+// --- il2NoApplyWithoutTasksDone ---
+
+// il2NoApplyWithoutTasksDone enforces Iron Law #2 at the governance policy layer:
+// when the action is "sdd_apply", the task metadata must carry
+// tasks_phase_status == "done". Any non-terminal or non-done status blocks
+// apply with a Deny outcome.
+//
+// The metadata key "tasks_phase_status" is set by sophia-orchestator before it
+// calls the governance decision endpoint. Absence of the key is treated as
+// non-done (blocking) to fail closed.
+type il2NoApplyWithoutTasksDone struct{}
+
+func (r *il2NoApplyWithoutTasksDone) ID() string {
+	return "il2_no_apply_without_tasks_done"
+}
+
+func (r *il2NoApplyWithoutTasksDone) Evaluate(ctx PolicyContext) RuleEvaluation {
+	if ctx.Action != "sdd_apply" {
+		return RuleEvaluation{
+			RuleID: r.ID(),
+			Passed: true,
+			Reason: "action is not sdd_apply; IL2 does not apply",
+		}
+	}
+	meta := ctx.Task.Metadata()
+	tasksStatus, _ := meta["tasks_phase_status"].(string)
+	if tasksStatus == "done" {
+		return RuleEvaluation{
+			RuleID: r.ID(),
+			Passed: true,
+			Reason: "tasks phase is done; IL2 satisfied",
+		}
+	}
+	outcome := OutcomeDeny
+	return RuleEvaluation{
+		RuleID:  r.ID(),
+		Passed:  false,
+		Outcome: &outcome,
+		Reason:  "tasks phase not DONE; IL2 blocks sdd_apply until tasks phase status is done",
+	}
 }
