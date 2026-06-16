@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	adapter "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
-	"github.com/russellcxl/agent-governance-core/internal/domain/trace"
-	obslog "github.com/russellcxl/agent-governance-core/internal/infrastructure/obs/log"
+	adapter "github.com/RVRTelecomunicaciones/agent-governance-core/internal/adapters/inbound/http"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/trace"
+	obslog "github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/obs/log"
 	"github.com/stretchr/testify/require"
 )
 

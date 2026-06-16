@@ -6,11 +6,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/adapters/outbound/persistence"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
-	"github.com/russellcxl/agent-governance-core/test/fixtures"
-	"github.com/russellcxl/agent-governance-core/test/integration/testhelpers"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/adapters/outbound/persistence"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/test/fixtures"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/test/integration/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

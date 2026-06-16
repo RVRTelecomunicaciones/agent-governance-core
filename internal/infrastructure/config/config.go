@@ -18,7 +18,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/russellcxl/agent-governance-core/internal/infrastructure/database"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/database"
 )
 
 // Config holds the full application configuration.

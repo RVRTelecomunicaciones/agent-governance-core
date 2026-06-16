@@ -3,8 +3,8 @@ package routing
 import (
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 // EvaluatorInput holds all data needed for routing evaluation.

@@ -1,8 +1,8 @@
 package policy
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 // DefaultRules returns the phase-1 policy rules in evaluation order.

@@ -17,7 +17,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/trace"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/trace"
 )
 
 // TraceHandler wraps any slog.Handler and injects trace_id + span_id

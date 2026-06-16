@@ -3,8 +3,8 @@ package audit
 import (
 	"context"
 
-	domainaudit "github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	domainaudit "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // QueryAuditService provides read access to the audit trail.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/trace"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/trace"
 	"github.com/stretchr/testify/require"
 )
 

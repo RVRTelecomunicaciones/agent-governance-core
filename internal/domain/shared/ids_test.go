@@ -3,8 +3,8 @@ package shared_test
 import (
 	"testing"
 
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/oklog/ulid/v2"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

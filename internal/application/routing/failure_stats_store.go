@@ -3,7 +3,7 @@ package routing
 import (
 	"sync/atomic"
 
-	domainrouting "github.com/russellcxl/agent-governance-core/internal/domain/routing"
+	domainrouting "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
 )
 
 // FailureStatsStore provides lock-free read access to the latest FailureStats

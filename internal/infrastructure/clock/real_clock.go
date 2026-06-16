@@ -3,7 +3,7 @@ package clock
 import (
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // RealClock provides the actual system time.

@@ -682,7 +682,7 @@ package routing
 import (
 	"sync/atomic"
 
-	domainrouting "github.com/russellcxl/agent-governance-core/internal/domain/routing"
+	domainrouting "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
 )
 
 // FailureStatsStore provides lock-free read access to the current FailureStats snapshot.
@@ -719,8 +719,8 @@ import (
 	"strings"
 	"time"
 
-	domainrouting "github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	domainrouting "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 const (
@@ -875,10 +875,10 @@ import (
 	"time"
 	"log/slog"
 
-	domainaudit "github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	domainrouting "github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	domainaudit "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	domainrouting "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"time"
 
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/oklog/ulid/v2"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 )
 
 // newULID generates a fresh ULID string for test IDs.

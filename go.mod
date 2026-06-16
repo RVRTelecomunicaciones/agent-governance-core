@@ -1,4 +1,4 @@
-module github.com/russellcxl/agent-governance-core
+module github.com/RVRTelecomunicaciones/agent-governance-core
 
 go 1.26.2
 

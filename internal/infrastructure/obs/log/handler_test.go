@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/trace"
-	obslog "github.com/russellcxl/agent-governance-core/internal/infrastructure/obs/log"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/trace"
+	obslog "github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/obs/log"
 	"github.com/stretchr/testify/require"
 )
 

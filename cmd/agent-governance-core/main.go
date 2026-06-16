@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/bootstrap"
-	"github.com/russellcxl/agent-governance-core/internal/infrastructure/config"
-	"github.com/russellcxl/agent-governance-core/internal/infrastructure/database"
-	obslog "github.com/russellcxl/agent-governance-core/internal/infrastructure/obs/log"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/bootstrap"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/config"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/database"
+	obslog "github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/obs/log"
 )
 
 func main() {

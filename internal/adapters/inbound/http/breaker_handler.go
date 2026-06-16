@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
 )
 
 type breakerResponse struct {

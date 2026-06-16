@@ -1,6 +1,6 @@
 package workflow
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/shared"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 
 // WorkflowTransition records a single state transition in a workflow run's history.
 type WorkflowTransition struct {

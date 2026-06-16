@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // AttemptStatus represents the outcome of an execution attempt.
