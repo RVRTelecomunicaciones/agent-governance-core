@@ -6,10 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 
+	govmw "github.com/RVRTelecomunicaciones/agent-governance-core/internal/adapters/inbound/http/middleware"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/inbound"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	govmw "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http/middleware"
-	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
 )
 
 // Server is the HTTP adapter that maps REST endpoints to inbound port operations.

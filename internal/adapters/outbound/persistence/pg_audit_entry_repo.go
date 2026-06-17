@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
 )
 
 var _ outbound.AuditEntryRepository = (*PgAuditEntryRepository)(nil)

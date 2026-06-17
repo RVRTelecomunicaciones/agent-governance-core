@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 func (s *Server) handleQueryAuditTrail(w http.ResponseWriter, r *http.Request) {

@@ -3,8 +3,8 @@ package inbound
 import (
 	"context"
 
-	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	escalationdomain "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // EscalationPort defines the escalation trigger interface.

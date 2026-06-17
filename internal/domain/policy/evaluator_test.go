@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 func newTestTask(t *testing.T, taskType task.TaskType, scope task.TaskScope, riskLevel shared.RiskLevel) *task.Task {

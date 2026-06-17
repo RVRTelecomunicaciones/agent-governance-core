@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/trace"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/trace"
 )
 
 // TraceW3C returns chi-compatible middleware that implements W3C traceparent

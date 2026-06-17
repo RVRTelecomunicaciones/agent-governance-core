@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 var _ outbound.PhaseApprovalRepository = (*PgPhaseApprovalRepository)(nil)

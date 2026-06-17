@@ -7,13 +7,13 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
-	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/inbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 var _ inbound.QueryService = (*TracedQueryService)(nil)

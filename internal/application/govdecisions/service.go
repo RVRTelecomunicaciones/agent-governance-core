@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // DecisionType mirrors the orchestator wire enum.

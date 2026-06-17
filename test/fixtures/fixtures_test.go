@@ -5,12 +5,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 func TestTaskFactory_Defaults(t *testing.T) {

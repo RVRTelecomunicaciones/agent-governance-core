@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	escalationdomain "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // EscalationService handles escalation trigger use cases.

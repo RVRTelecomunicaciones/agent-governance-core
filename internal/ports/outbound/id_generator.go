@@ -1,6 +1,6 @@
 package outbound
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/shared"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 
 // IDGenerator abstracts ID generation. ULID implementation lives in the adapter layer.
 type IDGenerator interface {

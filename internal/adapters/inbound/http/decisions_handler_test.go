@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	adapter "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
-	"github.com/russellcxl/agent-governance-core/internal/application/govdecisions"
+	adapter "github.com/RVRTelecomunicaciones/agent-governance-core/internal/adapters/inbound/http"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/govdecisions"
 )
 
 // --- Mock PhaseDecisionsService ---

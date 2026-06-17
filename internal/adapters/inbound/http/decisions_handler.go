@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/govdecisions"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/govdecisions"
 )
 
 // PhaseDecisionsService is the inbound port the /governance/v1 facade calls.

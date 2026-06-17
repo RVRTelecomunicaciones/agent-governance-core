@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/russellcxl/agent-governance-core/govhttptest"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/govhttptest"
 )
 
 // These tests are the cross-module drift lock: they boot the REAL chi

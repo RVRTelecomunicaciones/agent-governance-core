@@ -3,8 +3,8 @@ package inbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // ResolveApprovalInput holds the data required to resolve an approval request.

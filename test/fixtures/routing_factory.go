@@ -1,8 +1,8 @@
 package fixtures
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // RoutingDecisionOption configures a test routing decision.

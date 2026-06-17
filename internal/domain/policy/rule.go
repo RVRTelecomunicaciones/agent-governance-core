@@ -1,6 +1,6 @@
 package policy
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/task"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 
 // PolicyContext holds the data needed for policy rule evaluation.
 type PolicyContext struct {

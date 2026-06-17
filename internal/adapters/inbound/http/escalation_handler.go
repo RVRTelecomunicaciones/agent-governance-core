@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	escalationdomain "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/go-chi/chi/v5"
-	escalationdomain "github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
 )
 
 func (s *Server) handleTriggerEscalation(w http.ResponseWriter, r *http.Request) {

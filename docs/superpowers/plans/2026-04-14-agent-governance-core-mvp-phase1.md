@@ -286,7 +286,7 @@ package shared_test
 import (
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -471,7 +471,7 @@ package shared_test
 import (
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -670,8 +670,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -778,7 +778,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // TaskType classifies the kind of work.
@@ -1054,7 +1054,7 @@ func IsValidTransition(from, to WorkflowStatus) bool {
 // internal/domain/workflow/transition.go
 package workflow
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/shared"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 
 // WorkflowTransition records a single state change. Immutable.
 type WorkflowTransition struct {
@@ -1076,8 +1076,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1185,7 +1185,7 @@ package workflow
 import (
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type WorkflowRun struct {
@@ -1316,7 +1316,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type AttemptStatus string
@@ -1412,8 +1412,8 @@ package execution_test
 import (
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1466,7 +1466,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type LeaseStatus string
@@ -1583,8 +1583,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1736,7 +1736,7 @@ package routing
 import (
 	"errors"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type RoutingDecision struct {
@@ -1803,8 +1803,8 @@ func ReconstructRoutingDecision(
 package routing
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 // MemoryContext holds optional context from memory-engine for routing decisions.
@@ -1932,8 +1932,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 type EvaluatorInput struct {
@@ -2067,9 +2067,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2233,7 +2233,7 @@ type RuleEvaluation struct {
 // internal/domain/policy/rule.go
 package policy
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/task"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 
 type PolicyContext struct {
 	Task   *task.Task
@@ -2268,8 +2268,8 @@ func IsActionSensitive(action string) bool {
 package policy
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 type riskCriticalRule struct{}
@@ -2348,7 +2348,7 @@ package policy
 import (
 	"errors"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type PolicyDecision struct {
@@ -2485,9 +2485,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2587,7 +2587,7 @@ package approval
 import (
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type ApprovalStatus string
@@ -2714,8 +2714,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2786,7 +2786,7 @@ package escalation
 import (
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type EscalationTarget string
@@ -2889,8 +2889,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -2936,7 +2936,7 @@ package audit
 import (
 	"errors"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type AuditEntry struct {
@@ -3069,7 +3069,7 @@ package audit_test
 import (
 	"testing"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -3142,15 +3142,15 @@ package outbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/escalation"
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/escalation"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 type TaskRepository interface {
@@ -3219,8 +3219,8 @@ package outbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // MemoryContextProvider is consumed by routing and intake to enrich decisions.
@@ -3237,9 +3237,9 @@ package outbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 type GovernanceNotifier interface {
@@ -3253,7 +3253,7 @@ type GovernanceNotifier interface {
 // internal/ports/outbound/clock.go
 package outbound
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/shared"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 
 type Clock interface {
 	Now() shared.Timestamp
@@ -3264,7 +3264,7 @@ type Clock interface {
 // internal/ports/outbound/id_generator.go
 package outbound
 
-import "github.com/russellcxl/agent-governance-core/internal/domain/shared"
+import "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 
 type IDGenerator interface {
 	NewTaskID() shared.TaskID
@@ -3285,8 +3285,8 @@ package outbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // AuditRecorder is the transversal service port injected into all use cases.
@@ -3305,11 +3305,11 @@ package inbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 type SubmitTaskInput struct {
@@ -3343,9 +3343,9 @@ package inbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 type WorkflowControl interface {
@@ -3363,8 +3363,8 @@ package inbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type ResolveApprovalInput struct {
@@ -3387,11 +3387,11 @@ package inbound
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 type QueryService interface {
@@ -3439,7 +3439,7 @@ package clock
 import (
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type RealClock struct{}
@@ -3460,7 +3460,7 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 type ULIDGenerator struct{}
@@ -3513,9 +3513,9 @@ package fixtures
 import (
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/infrastructure/idgen"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/idgen"
 )
 
 type TaskOption func(*taskConfig)
@@ -3640,8 +3640,8 @@ import (
 	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
 )
 
 type PgTaskRepository struct {
@@ -3718,8 +3718,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // StubMemoryContextProvider returns empty context. Phase 1 stub.
@@ -3765,9 +3765,9 @@ package events
 import (
 	"context"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/approval"
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/approval"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
 )
 
 type ExecutionReadyFunc func(ctx context.Context, wf *workflow.WorkflowRun, lease *execution.ExecutionLease) error

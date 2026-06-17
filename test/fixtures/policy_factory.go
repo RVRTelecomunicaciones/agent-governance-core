@@ -1,8 +1,8 @@
 package fixtures
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/domain/policy"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/policy"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // PolicyDecisionOption configures a test policy decision.

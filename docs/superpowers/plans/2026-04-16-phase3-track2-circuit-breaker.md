@@ -883,8 +883,8 @@ Modify `internal/application/workflowrun/service.go`:
 package workflowrun
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 type WorkflowRunService struct {
@@ -1095,9 +1095,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // AuditListener returns a TransitionListener that writes audit entries.
@@ -1241,7 +1241,7 @@ Modify `internal/ports/inbound/query_service.go`:
 ```go
 import (
 	// ... existing imports ...
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
 )
 
 type QueryService interface {
@@ -1303,7 +1303,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
 )
 
 type breakerResponse struct {
@@ -1506,12 +1506,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/task"
-	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/task"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/inbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

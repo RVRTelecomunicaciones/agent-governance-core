@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/application/govdecisions"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/govdecisions"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // Compile-time assertions that the in-memory fakes satisfy the REAL production

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/audit"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/audit"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 var ErrLeaseExhausted = errors.New("cannot resume: execution lease is exhausted")

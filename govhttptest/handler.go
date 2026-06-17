@@ -3,8 +3,8 @@ package govhttptest
 import (
 	"net/http"
 
-	govhttp "github.com/russellcxl/agent-governance-core/internal/adapters/inbound/http"
-	"github.com/russellcxl/agent-governance-core/internal/application/govdecisions"
+	govhttp "github.com/RVRTelecomunicaciones/agent-governance-core/internal/adapters/inbound/http"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/govdecisions"
 )
 
 // NewInMemoryDecisionsHandler returns the REAL /governance/v1/* decision facade

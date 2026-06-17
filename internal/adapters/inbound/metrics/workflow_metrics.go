@@ -6,10 +6,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/execution"
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
-	"github.com/russellcxl/agent-governance-core/internal/domain/workflow"
-	"github.com/russellcxl/agent-governance-core/internal/ports/inbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/execution"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/workflow"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/inbound"
 )
 
 // MetricsWorkflowControl is a decorator that emits OTel metrics around a

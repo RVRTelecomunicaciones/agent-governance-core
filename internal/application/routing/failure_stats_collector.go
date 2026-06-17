@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	domainrouting "github.com/russellcxl/agent-governance-core/internal/domain/routing"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	domainrouting "github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/routing"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 const (

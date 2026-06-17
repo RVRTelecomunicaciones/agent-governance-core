@@ -7,7 +7,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace/noop"
 
-	"github.com/russellcxl/agent-governance-core/internal/infrastructure/observability"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/infrastructure/observability"
 )
 
 func TestSetupOTel_Disabled(t *testing.T) {

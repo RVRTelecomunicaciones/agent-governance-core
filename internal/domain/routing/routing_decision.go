@@ -3,7 +3,7 @@ package routing
 import (
 	"errors"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // Errors for the routing decision aggregate.

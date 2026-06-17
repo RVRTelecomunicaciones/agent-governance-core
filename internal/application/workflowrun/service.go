@@ -2,8 +2,8 @@
 package workflowrun
 
 import (
-	"github.com/russellcxl/agent-governance-core/internal/application/resilience"
-	"github.com/russellcxl/agent-governance-core/internal/ports/outbound"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/application/resilience"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/ports/outbound"
 )
 
 // WorkflowRunService coordinates WorkflowRun and ExecutionLease in the application layer.

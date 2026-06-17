@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/russellcxl/agent-governance-core/internal/domain/shared"
+	"github.com/RVRTelecomunicaciones/agent-governance-core/internal/domain/shared"
 )
 
 // LeaseStatus represents the current state of an execution lease.
